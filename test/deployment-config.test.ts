@@ -10,6 +10,13 @@ test("Compose persists SQLite data under /opt/teamassist", () => {
   assert.equal(compose.includes("sqlite-data:"), false, compose);
 });
 
+test("Compose leaves reverse proxying to an external Nginx", () => {
+  const compose = readFileSync(resolve(process.cwd(), "docker-compose.yml"), "utf8");
+
+  assert.equal(/^\s{2}nginx:/m.test(compose), false, compose);
+  assert.equal(compose.includes("./nginx/"), false, compose);
+});
+
 test("production image compiles the CLI without relying on tsx", () => {
   const dockerfile = readFileSync(resolve(process.cwd(), "Dockerfile"), "utf8");
 

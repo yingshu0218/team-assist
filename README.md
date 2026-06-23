@@ -48,6 +48,8 @@ export ADMIN_SESSION_SECRET="$(openssl rand -base64 48)"
 docker compose up -d --build
 ```
 
+Compose 仅启动应用服务并暴露 `5000` 端口。请在 VPS 已有的 Nginx 容器或反向代理中，将你的域名转发到该主机的 `5000` 端口；证书、HTTPS 与限流均由现有 Nginx 统一管理。
+
 容器内的 CLI 已在镜像构建时编译，不依赖 `tsx`：
 
 ```bash
@@ -381,6 +383,7 @@ pnpm start
 - 新增 `ledger get`、`ledger update`，并补齐 CRM 联系记录 API，支持 `contact log <id> --content <内容>`
 - Docker 镜像构建阶段编译 `dist/cli.js`，生产容器无需安装 `tsx` 也可使用 CLI
 - Docker Compose 默认将 SQLite 数据持久化到宿主机 `/opt/teamassist`
+- Docker Compose 不再内置 Nginx，改由 VPS 现有反向代理统一提供 HTTPS 与流量管理
 - 增加会话签名、CLI 命令及部署配置回归测试
 
 ### v1.4.0

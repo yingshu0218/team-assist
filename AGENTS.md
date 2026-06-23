@@ -14,7 +14,7 @@
 - **数据库**: SQLite (better-sqlite3 + Drizzle ORM)，通过 `src/storage/database/sqlite-client.ts` 访问
 - **图表**: Recharts + react-force-graph-2d (关系图谱)
 - **CLI**: Commander 风格命令行工具 (`scripts/cli.ts`)，使用 `npx tsx` 运行，通过 HTTP API 远程调用
-- **部署**: Docker + Nginx 反向代理，SQLite 数据持久化 + Git 远程备份
+- **部署**: Docker 应用容器 + 外部 Nginx 反向代理，SQLite 数据持久化 + Git 远程备份
 
 ## 目录结构
 
@@ -68,8 +68,6 @@
 │       └── database/
 │           ├── sqlite-client.ts    # SQLite 客户端 (better-sqlite3 + Drizzle ORM)
 │           └── shared/schema.ts    # Drizzle ORM Schema
-├── nginx/                  # Nginx 反向代理配置
-│   └── nginx.conf
 ├── Dockerfile              # Docker 镜像构建
 ├── docker-compose.yml      # Docker Compose 编排
 ├── DESIGN.md               # 设计规范文档
