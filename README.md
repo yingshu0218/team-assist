@@ -37,6 +37,23 @@ pnpm build
 pnpm start
 ```
 
+### Docker 部署
+
+生产环境默认将 SQLite 数据持久化到宿主机的 `/opt/teamassist`。首次部署前，请创建该目录并将所有权交给镜像中的 `nextjs` 用户（UID/GID 为 `1001`）：
+
+```bash
+sudo mkdir -p /opt/teamassist
+sudo chown -R 1001:1001 /opt/teamassist
+export ADMIN_SESSION_SECRET="$(openssl rand -base64 48)"
+docker compose up -d --build
+```
+
+容器内的 CLI 已在镜像构建时编译，不依赖 `tsx`：
+
+```bash
+docker compose exec app node dist/cli.js --token <AGENT_TOKEN> --api-base http://localhost:5000 ledger list
+```
+
 ## 核心功能
 
 ### 1. 多账本管理
@@ -357,6 +374,14 @@ pnpm start
 - 外键关系：`categories.group_id → category_groups.id`（SET NULL）、`*.ledger_id → ledgers.id`（CASCADE）
 
 ## Changelog
+
+### v1.5.0
+
+- 移除原平台相关依赖、配置、脚本和自然语言 Chat 入口；外部 Agent 通过 Token + 结构化 CLI/API 操作数据
+- 新增 `ledger get`、`ledger update`，并补齐 CRM 联系记录 API，支持 `contact log <id> --content <内容>`
+- Docker 镜像构建阶段编译 `dist/cli.js`，生产容器无需安装 `tsx` 也可使用 CLI
+- Docker Compose 默认将 SQLite 数据持久化到宿主机 `/opt/teamassist`
+- 增加会话签名、CLI 命令及部署配置回归测试
 
 ### v1.4.0
 

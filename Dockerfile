@@ -17,6 +17,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN pnpm next build
 RUN pnpm tsup src/server.ts --format cjs --platform node --target node20 --outDir dist --no-splitting --no-minify
+RUN pnpm tsup scripts/cli.ts --format cjs --platform node --target node20 --outDir dist --no-splitting --no-minify
 
 # 阶段3: 生产运行
 FROM node:24-alpine AS runner
