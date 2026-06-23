@@ -113,9 +113,6 @@ importers:
       cmdk:
         specifier: ^1.1.1
         version: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.10))(@types/react@19.2.10)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
-      coze-coding-dev-sdk:
-        specifier: ^0.7.24
-        version: 0.7.24(openai@6.44.0(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -3367,11 +3364,6 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
-
-  coze-coding-dev-sdk@0.7.24:
-    resolution: {integrity: sha512-oL9Tg5PwxP6iMixonzzMO4aBjOKWcFUMVM+iz5dPyaqQkG84HP1y9DqK5DJVmtdfJuYdAW7pzOatDqLvgvZiXg==}
-    engines: {node: '>=18.0.0'}
-    hasBin: true
 
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
@@ -9716,25 +9708,6 @@ snapshots:
       parse-json: 5.2.0
     optionalDependencies:
       typescript: 5.9.3
-
-  coze-coding-dev-sdk@0.7.24(openai@6.44.0(ws@8.19.0)(zod@4.3.6))(ws@8.19.0):
-    dependencies:
-      '@langchain/core': 1.2.1(openai@6.44.0(ws@8.19.0)(zod@4.3.6))(ws@8.19.0)
-      '@langchain/openai': 1.5.2(@langchain/core@1.2.1(openai@6.44.0(ws@8.19.0)(zod@4.3.6))(ws@8.19.0))(ws@8.19.0)
-      '@supabase/supabase-js': 2.95.3
-      axios: 1.18.1
-      pg: 8.17.2
-    transitivePeerDependencies:
-      - '@opentelemetry/api'
-      - '@opentelemetry/exporter-trace-otlp-proto'
-      - '@opentelemetry/sdk-trace-base'
-      - bufferutil
-      - debug
-      - openai
-      - pg-native
-      - supports-color
-      - utf-8-validate
-      - ws
 
   cross-spawn@7.0.6:
     dependencies:

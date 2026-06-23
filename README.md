@@ -10,7 +10,7 @@
 | 语言 | TypeScript 5 (strict) |
 | UI 组件 | shadcn/ui (基于 Radix UI) |
 | 样式 | Tailwind CSS 4 |
-| 数据库 | Supabase (PostgreSQL) |
+| 数据库 | SQLite (better-sqlite3 + Drizzle ORM) |
 | 图表 | Recharts |
 | 主题 | next-themes |
 | CLI | Commander 风格 (`scripts/cli.ts`)，使用 `npx tsx` 运行 |
@@ -20,7 +20,7 @@
 ### 启动开发服务器
 
 ```bash
-coze dev
+pnpm dev
 ```
 
 启动后，在浏览器中打开 [http://localhost:5000](http://localhost:5000) 查看应用。开发服务器支持热更新，修改代码后页面会自动刷新。
@@ -28,13 +28,13 @@ coze dev
 ### 构建生产版本
 
 ```bash
-coze build
+pnpm build
 ```
 
 ### 启动生产服务器
 
 ```bash
-coze start
+pnpm start
 ```
 
 ## 核心功能
@@ -186,8 +186,8 @@ CLI 配置文件 `.cli-config.json` 保存当前激活的账本 ID，已被 .git
 |------|------|------|------|
 | 数据库 | Supabase (PostgreSQL) | — | 托管 PostgreSQL，`@supabase/supabase-js` 2.95.x |
 | ORM | Drizzle ORM | 0.45.x | 类型安全 ORM，`shared/schema.ts` 定义表结构 |
-| 迁移工具 | Drizzle Kit | 0.31.x | `coze-coding-ai db upgrade` 执行迁移 |
-| 数据库驱动 | pg | 8.x | PostgreSQL 驱动，Drizzle 底层使用 |
+| 数据库初始化 | 应用启动时自动执行 | — | `sqlite-client.ts` 创建缺失表和索引 |
+| 数据库驱动 | better-sqlite3 | 12.x | 本地 SQLite 驱动 |
 | API 路由 | Next.js Route Handlers | — | `src/app/api/` 目录，每个路由 `route.ts` 导出 GET/POST 等 |
 | Git 操作 | child_process (git) | — | 通过 `execSync` 调用系统 git 命令，支持 GitHub/Gitea |
 | CLI | Commander 风格 | — | `scripts/cli.ts`，通过 `npx tsx` 运行 |
@@ -199,15 +199,14 @@ CLI 配置文件 `.cli-config.json` 保存当前激活的账本 ID，已被 .git
 | 构建工具 | Next.js 内置 (Turbopack) | `next build`，`scripts/build.sh` 封装 |
 | 开发服务器 | `next dev` | 端口从 `DEPLOY_RUN_PORT` 环境变量读取，默认 5000 |
 | 生产服务器 | `next start` | `scripts/start.sh` 封装 |
-| 运行环境 | 沙箱环境 | `COZE_PROJECT_DOMAIN_DEFAULT` 提供对外域名 |
+| 运行环境 | Node.js / Docker | 通过环境变量配置端口和数据目录 |
 
 ### 关键配置文件
 
 | 文件 | 说明 |
 |------|------|
 | `tsconfig.json` | TypeScript 配置，`strict: true`，路径别名 `@/*` → `./src/*` |
-| `next.config.ts` | Next.js 配置，允许 `*.dev.coze.site` 开发源，远程图片允许 |
-| `.coze` | 沙箱构建/运行配置（TOML 格式），定义 dev/deploy 的 build/run 命令 |
+| `next.config.ts` | Next.js 配置，启用 standalone 部署输出和远程图片允许 |
 | `package.json` | 依赖声明、脚本定义、pnpm 引擎约束 |
 
 ## 项目结构
@@ -308,8 +307,6 @@ pnpm remove <package> # 移除依赖
 pnpm install
 
 # 启动开发服务器（支持热更新）
-coze dev
-# 或
 pnpm dev
 
 # 类型检查
@@ -319,21 +316,16 @@ pnpm ts-check
 pnpm lint
 
 # 构建生产版本
-coze build
-# 或
 pnpm build
 
 # 启动生产服务器
-coze start
-# 或
 pnpm start
 ```
 
 ### 新增页面/功能的标准流程
 
 1. **数据库层**：在 `src/storage/database/shared/schema.ts` 中定义 Drizzle 表结构
-2. **迁移**：执行 `coze-coding-ai db upgrade` 将 Schema 同步到数据库
-3. **RLS**：对新表启用 RLS 并创建公开策略（开发环境）
+2. **数据库初始化**：应用启动时会创建缺失的 SQLite 表和索引
 4. **类型定义**：在 `src/lib/types.ts` 中添加/更新 TypeScript 接口
 5. **API 路由**：在 `src/app/api/` 下创建 `route.ts`，导出 GET/POST/PUT/DELETE
 6. **数据 Hook**：使用 `useFetch` / `apiPost` / `apiPut` / `apiDelete`（来自 `src/hooks/use-data.ts`）

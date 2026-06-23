@@ -14,7 +14,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV COZE_PROJECT_ENV=PROD
 
 RUN pnpm next build
 RUN pnpm tsup src/server.ts --format cjs --platform node --target node20 --outDir dist --no-splitting --no-minify
@@ -26,7 +25,6 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV COZE_PROJECT_ENV=PROD
 ENV PORT=5000
 
 # 创建非 root 用户

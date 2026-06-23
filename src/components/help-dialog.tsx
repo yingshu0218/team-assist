@@ -282,8 +282,8 @@ npx tsx scripts/cli.ts stats`}</code></pre>
           <p className="font-semibold mb-1">关键配置</p>
           <ul className="ml-4 list-disc space-y-0.5 text-muted-foreground">
             <li>tsconfig.json：strict: true，路径别名 @/* → ./src/*</li>
-            <li>next.config.ts：允许 *.dev.coze.site 开发源</li>
-            <li>.coze：沙箱构建/运行配置（TOML 格式）</li>
+            <li>next.config.ts：Next.js 独立部署输出配置</li>
+            <li>端口从 DEPLOY_RUN_PORT 环境变量读取</li>
             <li>端口从 DEPLOY_RUN_PORT 环境变量读取</li>
           </ul>
         </div>

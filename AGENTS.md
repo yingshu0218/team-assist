@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-团队管理助手 — 支持多账本管理、收支记录、分类标签、客户关系管理（CRM）、数据统计与可视化的全栈 Web 应用，同时集成 CRM 子系统（联系人管理、分组、事件/项目、关联关系网络、图谱可视化），并提供 CLI 命令行工具和 Agent 接入能力。概览按当前选中账本独立展示，支持亮色/暗色主题和 Git 数据备份。系统需管理员登录后方可使用，Agent 可通过 Token 凭证调用 API。Agent 通过 `chat` 命令用自然语言交互，服务端 LLM 自动解析为结构化操作并执行（自动分类、自动识别收支类型、#标签关联联系人）。
+团队管理助手 — 支持多账本管理、收支记录、分类标签、客户关系管理（CRM）、数据统计与可视化的全栈 Web 应用，同时集成 CRM 子系统（联系人管理、分组、事件/项目、关联关系网络、图谱可视化），并提供 CLI 命令行工具和 Token 鉴权。概览按当前选中账本独立展示，支持亮色/暗色主题和 Git 数据备份。系统需管理员登录后方可使用，外部 Agent 可通过 Token 凭证调用 CLI 或 API。
 
 ### 版本技术栈
 
@@ -14,7 +14,6 @@
 - **数据库**: SQLite (better-sqlite3 + Drizzle ORM)，通过 `src/storage/database/sqlite-client.ts` 访问
 - **图表**: Recharts + react-force-graph-2d (关系图谱)
 - **CLI**: Commander 风格命令行工具 (`scripts/cli.ts`)，使用 `npx tsx` 运行，通过 HTTP API 远程调用
-- **LLM**: coze-coding-dev-sdk (Agent 自然语言解析，默认 doubao-seed-2-0-lite)
 - **部署**: Docker + Nginx 反向代理，SQLite 数据持久化 + Git 远程备份
 
 ## 目录结构
@@ -29,7 +28,7 @@
 │   └── cli.ts              # CLI 命令行工具入口
 ├── src/
 │   ├── app/
-│   │   ├── api/            # API 路由 (ledgers, transactions, categories, category-groups, tags, stats, sync, crm/*, auth/*, agent/chat)
+│   │   ├── api/            # API 路由 (ledgers, transactions, categories, category-groups, tags, stats, sync, crm/*, auth/*)
 │   │   ├── globals.css     # 全局样式
 │   │   ├── layout.tsx      # 根布局
 │   │   └── page.tsx        # 主页面 (含 tab 切换 + 认证门控)
@@ -63,7 +62,6 @@
 │   │   ├── types.ts        # 共享类型定义
 │   │   ├── constants.ts    # 常量 (分类颜色、图标映射、格式化函数)
 │   │   ├── auth.ts         # 认证工具 (JWT/密码哈希/请求验证)
-│   │   ├── agent-llm.ts    # Agent LLM 自然语言解析服务 (coze-coding-dev-sdk)
 │   │   ├── utils.ts        # 通用工具函数 (cn)
 │   │   └── middleware.ts    # Next.js 中间件 (API 认证检查)
 │   └── storage/
@@ -141,8 +139,6 @@
 | `/api/auth/agent` | GET/POST | Agent Token列表/创建(需管理员认证) |
 | `/api/auth/agent/[id]` | DELETE | 撤销Agent Token(需管理员认证) |
 | `/api/auth/guide` | GET | Agent接入引导(需Agent Token认证) |
-| `/api/auth/agent/deploy` | GET | Agent一键部署配置(需管理员认证,返回Hermes/OpenClaw部署命令模板) |
-| `/api/agent/chat` | POST | Agent自然语言交互(需Agent Token认证,服务端LLM解析) |
 
 ## CLI 使用
 
@@ -152,6 +148,8 @@ npx tsx scripts/cli.ts <command> [options]
 # 账本命令
 npx tsx scripts/cli.ts ledger list
 npx tsx scripts/cli.ts ledger create --name <name> [--desc <desc>]
+npx tsx scripts/cli.ts ledger get <id>
+npx tsx scripts/cli.ts ledger update <id> [--name <name>] [--desc <desc>] [--currency <currency>] [--initial-balance <amount>] [--active <true|false>]
 npx tsx scripts/cli.ts ledger use <id>
 
 # 收支记录命令
@@ -213,10 +211,6 @@ npx tsx scripts/cli.ts relation delete <id>
 # CRM 图谱命令
 npx tsx scripts/cli.ts graph
 
-# Agent 自然语言交互命令
-npx tsx scripts/cli.ts --token <TOKEN> --api-base <URL> chat "午餐花了35元"
-npx tsx scripts/cli.ts --token <TOKEN> --api-base <URL> chat "和张总谈了新项目合作 #重要客户 #商务合作"
-npx tsx scripts/cli.ts --token <TOKEN> --api-base <URL> chat "收到客户张伟的合同款50000元"
 
 # 导出命令
 npx tsx scripts/cli.ts export ledger <id> [--format csv|json] [--period all|month|year|custom] [--start-date <YYYY-MM-DD>] [--end-date <YYYY-MM-DD>]
@@ -251,8 +245,7 @@ CLI 通过 HTTP API 远程调用，无需直接访问数据库。
 - 管理员可在"系统设置"中创建/撤销 Agent Token
 - Token 格式：64 字符十六进制字符串
 - Agent Token 用于外部程序/Agent 接入系统
-- Agent 连入后可访问 `/api/auth/guide` 获取完整命令说明
-- Agent 通过 `chat` 命令可用自然语言交互，服务端 LLM 自动解析为结构化操作（记账自动分类、CRM 自动关联标签）
+- Agent 连入后可访问 `/api/auth/guide` 获取完整 CLI 命令说明
 - CLI 通过 `--token` 参数传入 Agent Token
 
 ## 包管理规范

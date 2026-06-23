@@ -56,8 +56,7 @@
  *   graph                                    - 查看关系图谱数据
  *   export ledger <id> [--format csv|json] [--period all|month|year|custom] [--start-date <YYYY-MM-DD>] [--end-date <YYYY-MM-DD>]
  *   export contacts [--format csv|json]
- *   guide                                    - 查看 Agent 接入引导
- *   chat <message>                           - 自然语言交互
+ *   guide                                    - 查看 CLI 接入引导
  */
 
 import { writeFileSync, readFileSync, existsSync } from "fs";
@@ -226,6 +225,43 @@ async function ledgerUse(args: string[]) {
 
   saveConfig({ ...loadConfig(), activeLedgerId: id });
   console.log(c.green(`\n✓ 已切换到账本「${result.data!.name}」(ID: ${id})\n`));
+}
+
+async function ledgerGet(args: string[]) {
+  const id = parseInt(args[0], 10);
+  if (!id) {
+    console.error("用法: ledger get <id>");
+    process.exit(1);
+  }
+
+  const result = await apiFetch<Record<string, unknown>>(`/api/ledgers/${id}`);
+  if (!result.success) { console.error("查询失败:", result.error); process.exit(1); }
+  console.log(JSON.stringify(result.data, null, 2));
+}
+
+async function ledgerUpdate(args: string[]) {
+  const id = parseInt(args[0], 10);
+  if (!id) {
+    console.error("用法: ledger update <id> [--name <名称>] [--desc <描述>] [--currency <币种>] [--initial-balance <金额>] [--active <true|false>]");
+    process.exit(1);
+  }
+
+  const opts = parseArgs(args.slice(1));
+  const body: Record<string, unknown> = {};
+  if (opts.name) body.name = opts.name;
+  if (opts.desc !== undefined) body.description = opts.desc;
+  if (opts.currency) body.currency = opts.currency;
+  if (opts["initial-balance"] !== undefined) body.initial_balance = opts["initial-balance"];
+  if (opts.active !== undefined) body.is_active = opts.active === "true";
+
+  if (Object.keys(body).length === 0) {
+    console.error("错误: 请至少提供一个要更新的字段");
+    process.exit(1);
+  }
+
+  const result = await apiFetch(`/api/ledgers/${id}`, { method: "PUT", body: JSON.stringify(body) });
+  if (!result.success) { console.error("更新失败:", result.error); process.exit(1); }
+  console.log(c.green(`\n✓ 账本 #${id} 更新成功\n`));
 }
 
 async function ledgerDelete(args: string[]) {
@@ -930,35 +966,6 @@ async function guideCommand() {
   console.log(JSON.stringify(result.data, null, 2));
 }
 
-// ==================== Agent 自然语言交互命令 ====================
-
-async function chatCommand(args: string[]) {
-  const message = args.join(" ").trim();
-  if (!message) {
-    console.error("用法: chat <自然语言描述>");
-    console.error("示例: chat 午餐花了50元");
-    console.error("      chat 和张总谈了新项目合作 #重要客户 #商务合作");
-    process.exit(1);
-  }
-
-  const ledgerId = getActiveLedgerId();
-  const result = await apiFetch("/api/agent/chat", {
-    method: "POST",
-    body: JSON.stringify({ message, ledger_id: ledgerId }),
-  });
-
-  if (!result.success) { console.error("处理失败:", result.error); process.exit(1); }
-
-  const data = result.data as { intent: string; result: Record<string, unknown>; message: string };
-  console.log(c.bold(`\n🤖 ${data.message || "处理完成"}\n`));
-  if (data.intent) console.log(c.dim(`  意图: ${data.intent}`));
-  if (data.result) {
-    const resultStr = JSON.stringify(data.result, null, 2);
-    console.log(c.dim(`  结果: ${resultStr}`));
-  }
-  console.log();
-}
-
 // ==================== 主入口 ====================
 
 async function main() {
@@ -996,7 +1003,7 @@ async function main() {
     console.log("  --token <TOKEN>      Agent Token 凭证");
     console.log("  --api-base <URL>     API 服务地址\n");
     console.log("命令:");
-    console.log("  ledger list|create|use|delete    账本管理");
+    console.log("  ledger list|get|create|update|use|delete  账本管理");
     console.log("  tx add|list|update|delete         收支记录");
     console.log("  category list|add|update|delete   分类管理");
     console.log("  category-group list|add|update|delete  分组管理");
@@ -1008,8 +1015,7 @@ async function main() {
     console.log("  relation list|add|delete          CRM关联关系");
     console.log("  graph                             关系图谱");
     console.log("  export ledger|contacts            数据导出");
-    console.log("  guide                             Agent引导");
-    console.log("  chat <message>                    自然语言交互\n");
+    console.log("  guide                             CLI 引导\n");
     return;
   }
 
@@ -1018,7 +1024,9 @@ async function main() {
       case "ledger":
         switch (subcommand) {
           case "list": await ledgerList(); break;
+          case "get": await ledgerGet(rest); break;
           case "create": await ledgerCreate(rest); break;
+          case "update": await ledgerUpdate(rest); break;
           case "use": await ledgerUse(rest); break;
           case "delete": await ledgerDelete(rest); break;
           default: console.error(`未知子命令: ledger ${subcommand}`); process.exit(1);
@@ -1112,7 +1120,6 @@ async function main() {
         }
         break;
       case "guide": await guideCommand(); break;
-      case "chat": await chatCommand(rest); break;
       default:
         console.error(`未知命令: ${command}`);
         console.error("运行不带参数查看帮助");

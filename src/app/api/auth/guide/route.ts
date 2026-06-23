@@ -104,26 +104,6 @@ export async function GET(request: Request) {
         },
       },
 
-      // 自然语言交互
-      chat: {
-        description: "自然语言交互 — 用自然语言记账、管理CRM，AI自动分类和识别意图",
-        commands: {
-          "chat <自然语言>": "用自然语言描述操作，系统自动识别意图并执行",
-        },
-        api_endpoint: {
-          method: "POST",
-          path: "/api/agent/chat",
-          body: { message: "自然语言输入", ledger_id: "目标账本ID" },
-          description: "发送自然语言到服务端，LLM自动解析意图并执行",
-        },
-        examples: [
-          { input: "午餐花了50元", intent: "自动识别为支出/餐饮食品分类，创建交易记录" },
-          { input: "收到客户打款30000元", intent: "自动识别为收入/经营收入分类，创建交易记录" },
-          { input: "张三今天来拜访了 #VIP客户", intent: "自动创建联系人张三，加入VIP客户分组" },
-          { input: "李四换了新手机号13800138000", intent: "自动匹配已有联系人李四并更新手机号" },
-          { input: "王五说项目A下周验收", intent: "自动添加联系记录到王五" },
-        ],
-      },
     },
 
     tips: [
