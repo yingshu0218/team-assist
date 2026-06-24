@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const ledgerId = request.nextUrl.searchParams.get("ledger_id");
+    const preset = request.nextUrl.searchParams.get("preset") || "contacts";
 
     const db = getDb();
     const lid = ledgerId ? parseInt(ledgerId, 10) : null;
@@ -42,12 +43,11 @@ export async function GET(request: NextRequest) {
         .from(crm_event_participants)
         .where(inArray(crm_event_participants.event_id, eventIds));
 
-      participantLinks = participants.map((p) => ({
-        source: `contact-${p.contact_id}`,
-        target: `event-${p.event_id}`,
-        label: p.role || "参与者",
-        color: "#94a3b8",
-      }));
+      participantLinks = preset === "contacts"
+        ? participants.flatMap((participant, index) => participants
+          .filter((candidate) => candidate.event_id === participant.event_id && candidate.contact_id > participant.contact_id)
+          .map((candidate) => ({ source: `contact-${participant.contact_id}`, target: `contact-${candidate.contact_id}`, label: "共同参与事件", color: "#94a3b8" })))
+        : participants.map((p) => ({ source: `contact-${p.contact_id}`, target: `event-${p.event_id}`, label: p.role || "参与者", color: "#94a3b8" }));
     }
 
     // 构建节点
@@ -60,19 +60,19 @@ export async function GET(request: NextRequest) {
         color: "#b87333",
         borderColor: "#b87333",
       })),
-      ...events.map((e) => ({
+      ...(preset === "contacts" ? [] : events.map((e) => ({
         id: `event-${e.id}`,
         type: e.type as "event" | "project",
         label: e.title,
         sublabel: e.type === "project" ? "项目" : "事件",
         color: e.type === "project" ? "#4a7c59" : "#d4a574",
         borderColor: e.type === "project" ? "#4a7c59" : "#d4a574",
-      })),
+      }))),
     ];
 
     // 构建边
     const links = [
-      ...relationships.map((r) => ({
+      ...relationships.filter((r) => preset !== "contacts" || (r.source_type === "contact" && r.target_type === "contact")).map((r) => ({
         source: `${r.source_type}-${r.source_id}`,
         target: `${r.target_type}-${r.target_id}`,
         label: r.label,
