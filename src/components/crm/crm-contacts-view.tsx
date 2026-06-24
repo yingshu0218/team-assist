@@ -37,13 +37,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { useLedger } from "@/hooks/use-ledger";
 import { useFetch, apiPost, apiPut, apiDelete } from "@/hooks/use-data";
 import { ExportDialog } from "@/components/export-dialog";
 import type { CrmContact, CrmContactLog } from "@/lib/types";
 
 export function CrmContactsView() {
-  const { activeLedgerId } = useLedger();
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showCreate, setShowCreate] = useState(false);
@@ -60,7 +58,7 @@ export function CrmContactsView() {
   const [logContent, setLogContent] = useState("");
   const [showExport, setShowExport] = useState(false);
 
-  const url = activeLedgerId ? `/api/crm/contacts?ledger_id=${activeLedgerId}${search ? `&search=${encodeURIComponent(search)}` : ""}` : null;
+  const url = `/api/crm/contacts${search ? `?search=${encodeURIComponent(search)}` : ""}`;
   const { data: contacts, loading, refetch } = useFetch<CrmContact[]>(url);
 
   const detailUrl = selectedId ? `/api/crm/contacts/${selectedId}` : null;
@@ -74,9 +72,8 @@ export function CrmContactsView() {
   }, []);
 
   const handleCreate = async () => {
-    if (!activeLedgerId || !formName.trim()) return;
+    if (!formName.trim()) return;
     const res = await apiPost<CrmContact>("/api/crm/contacts", {
-      ledger_id: activeLedgerId,
       name: formName.trim(),
       phone: formPhone.trim() || undefined,
       company: formCompany.trim() || undefined,

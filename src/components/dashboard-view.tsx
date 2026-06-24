@@ -102,28 +102,15 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
     setExpenseLedgerId((selectedId) => resolveLedgerSelection(ledgerIds, selectedId, activeLedgerId));
   }, [ledgers, activeLedgerId]);
 
-  // 获取所有账本的联系人总数
+  // 获取全局联系人总数
   useEffect(() => {
-    if (ledgers.length === 0) {
-      setTotalContacts(0);
-      setContactsLoading(false);
-      return;
-    }
-
     setContactsLoading(true);
-    Promise.all(
-      ledgers.map(async (ledger) => {
-        const res = await fetch(`/api/crm/contacts?ledger_id=${ledger.id}&_t=${refreshTick}`, {
-          headers: { ...authHeaders() },
-        });
-        const json = await res.json();
-        return json.data?.length ?? 0;
-      })
-    )
-      .then((counts) => setTotalContacts(counts.reduce((total, count) => total + count, 0)))
+    fetch(`/api/crm/contacts?_t=${refreshTick}`, { headers: { ...authHeaders() } })
+      .then((res) => res.json())
+      .then((json) => setTotalContacts(json.data?.length ?? 0))
       .catch(() => setTotalContacts(0))
       .finally(() => setContactsLoading(false));
-  }, [ledgers, refreshTick]);
+  }, [refreshTick]);
 
   const trendStatsUrl = trendLedgerId ? `/api/stats?ledger_id=${trendLedgerId}&_t=${refreshTick}` : null;
   const expenseStatsUrl = expenseLedgerId ? `/api/stats?ledger_id=${expenseLedgerId}&_t=${refreshTick}` : null;
@@ -196,7 +183,7 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
                 {totalContacts}
               </p>
             )}
-            <p className="mt-1 text-[10px] text-muted-foreground">全部账本联系人</p>
+            <p className="mt-1 text-[10px] text-muted-foreground">全部联系人</p>
           </CardContent>
         </Card>
         {overviewsLoading ? (

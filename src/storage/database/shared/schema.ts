@@ -100,7 +100,6 @@ export const crm_contacts = sqliteTable(
   "crm_contacts",
   {
     id: integer("id").primaryKey({ autoIncrement: true }),
-    ledger_id: integer("ledger_id").notNull().references(() => ledgers.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     phone: text("phone"),
     company: text("company"),
@@ -108,10 +107,7 @@ export const crm_contacts = sqliteTable(
     created_at: text("created_at").default(sql`(datetime('now'))`).notNull(),
     updated_at: text("updated_at").default(sql`(datetime('now'))`).notNull(),
   },
-  (table) => [
-    index("crm_contacts_ledger_id_idx").on(table.ledger_id),
-    index("crm_contacts_name_idx").on(table.name),
-  ],
+  (table) => [index("crm_contacts_name_idx").on(table.name)],
 );
 
 // ==================== CRM 联系记录表 ====================

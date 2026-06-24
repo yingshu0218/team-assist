@@ -11,13 +11,8 @@ export async function GET(request: NextRequest) {
 
   try {
     const url = new URL(request.url);
-    const ledger_id = url.searchParams.get("ledger_id");
     const search = url.searchParams.get("search");
     const group_id = url.searchParams.get("group_id");
-
-    if (!ledger_id) {
-      return NextResponse.json({ success: false, error: "缺少 ledger_id" }, { status: 400 });
-    }
 
     const db = getDb();
 
@@ -35,7 +30,6 @@ export async function GET(request: NextRequest) {
 
       const contactIds = memberRows.map((m) => m.contact_id).filter((id): id is number => id !== null);
       const conditions = [
-        eq(crm_contacts.ledger_id, parseInt(ledger_id, 10)),
         sql`${crm_contacts.id} IN (${contactIds.join(",")})`,
       ];
       if (search) conditions.push(like(crm_contacts.name, `%${search}%`));
@@ -49,17 +43,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, data });
     }
 
-    const conditions = [eq(crm_contacts.ledger_id, parseInt(ledger_id, 10))];
-    if (search) {
-      conditions.push(
-        sql`(${crm_contacts.name} LIKE ${`%${search}%`} OR ${crm_contacts.company} LIKE ${`%${search}%`} OR ${crm_contacts.phone} LIKE ${`%${search}%`})`
-      );
-    }
-
     const data = await db
       .select()
       .from(crm_contacts)
-      .where(and(...conditions))
+      .where(search
+        ? sql`(${crm_contacts.name} LIKE ${`%${search}%`} OR ${crm_contacts.company} LIKE ${`%${search}%`} OR ${crm_contacts.phone} LIKE ${`%${search}%`})`
+        : undefined)
       .orderBy(asc(crm_contacts.name));
 
     return NextResponse.json({ success: true, data });
@@ -76,11 +65,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { ledger_id, name, phone, company, notes } = body;
+    const { name, phone, company, notes } = body;
 
-    if (!ledger_id || !name?.trim()) {
+    if (!name?.trim()) {
       return NextResponse.json(
-        { success: false, error: "缺少必要参数: ledger_id, name" },
+        { success: false, error: "缺少必要参数: name" },
         { status: 400 }
       );
     }
@@ -89,7 +78,6 @@ export async function POST(request: NextRequest) {
     const result = await db
       .insert(crm_contacts)
       .values({
-        ledger_id: parseInt(ledger_id, 10),
         name: name.trim(),
         phone: phone?.trim() || null,
         company: company?.trim() || null,

@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./shared/schema";
+import { requiresGlobalContactMigration } from "@/lib/contact-migration";
 import path from "path";
 import fs from "fs";
 
@@ -13,6 +14,35 @@ function ensureDataDir(): void {
   const dbDir = path.dirname(DB_PATH);
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
+  }
+}
+
+function migrateContactsToGlobal(sqlite: Database.Database): void {
+  const columns = sqlite.prepare("PRAGMA table_info(crm_contacts)").all() as Array<{ name: string }>;
+  if (!requiresGlobalContactMigration(columns.map((column) => column.name))) return;
+
+  sqlite.pragma("foreign_keys = OFF");
+  try {
+    sqlite.transaction(() => {
+      sqlite.exec(`
+        CREATE TABLE crm_contacts_global (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          phone TEXT,
+          company TEXT,
+          notes TEXT,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT INTO crm_contacts_global (id, name, phone, company, notes, created_at, updated_at)
+        SELECT id, name, phone, company, notes, created_at, updated_at FROM crm_contacts;
+        DROP TABLE crm_contacts;
+        ALTER TABLE crm_contacts_global RENAME TO crm_contacts;
+        CREATE INDEX crm_contacts_name_idx ON crm_contacts(name);
+      `);
+    })();
+  } finally {
+    sqlite.pragma("foreign_keys = ON");
   }
 }
 
@@ -103,7 +133,6 @@ export function initDatabase(): void {
 
     CREATE TABLE IF NOT EXISTS crm_contacts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      ledger_id INTEGER NOT NULL REFERENCES ledgers(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       phone TEXT,
       company TEXT,
@@ -194,7 +223,6 @@ export function initDatabase(): void {
     CREATE INDEX IF NOT EXISTS transactions_category_id_idx ON transactions(category_id);
     CREATE INDEX IF NOT EXISTS transactions_type_idx ON transactions(type);
     CREATE INDEX IF NOT EXISTS transactions_transaction_date_idx ON transactions(transaction_date);
-    CREATE INDEX IF NOT EXISTS crm_contacts_ledger_id_idx ON crm_contacts(ledger_id);
     CREATE INDEX IF NOT EXISTS crm_contacts_name_idx ON crm_contacts(name);
     CREATE INDEX IF NOT EXISTS crm_contact_logs_contact_id_idx ON crm_contact_logs(contact_id);
     CREATE INDEX IF NOT EXISTS crm_groups_ledger_id_idx ON crm_groups(ledger_id);
@@ -208,6 +236,8 @@ export function initDatabase(): void {
     CREATE INDEX IF NOT EXISTS crm_relationships_source_idx ON crm_relationships(source_type, source_id);
     CREATE INDEX IF NOT EXISTS crm_relationships_target_idx ON crm_relationships(target_type, target_id);
   `);
+
+  migrateContactsToGlobal(sqlite);
 
   sqlite.close();
 }

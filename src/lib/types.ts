@@ -94,7 +94,6 @@ export type CrmEntityType = "contact" | "event";
 
 export interface CrmContact {
   id: number;
-  ledger_id: number;
   name: string;
   phone: string | null;
   company: string | null;

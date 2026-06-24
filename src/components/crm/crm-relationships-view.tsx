@@ -52,7 +52,7 @@ export function CrmRelationshipsView() {
   const relUrl = activeLedgerId ? `/api/crm/relationships?ledger_id=${activeLedgerId}` : null;
   const { data: relationships, loading, refetch } = useFetch<CrmRelationship[]>(relUrl);
 
-  const contactsUrl = activeLedgerId ? `/api/crm/contacts?ledger_id=${activeLedgerId}` : null;
+  const contactsUrl = "/api/crm/contacts";
   const { data: contacts } = useFetch<CrmContact[]>(contactsUrl);
 
   const eventsUrl = activeLedgerId ? `/api/crm/events?ledger_id=${activeLedgerId}` : null;

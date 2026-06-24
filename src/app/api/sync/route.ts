@@ -140,8 +140,11 @@ export async function POST(request: Request) {
       if (!data?.length) continue;
       try {
         for (const row of data) {
-          const columns = Object.keys(row);
-          const values = Object.values(row);
+          const normalizedRow = table === "crm_contacts"
+            ? Object.fromEntries(Object.entries(row).filter(([column]) => column !== "ledger_id"))
+            : row;
+          const columns = Object.keys(normalizedRow);
+          const values = Object.values(normalizedRow);
           const placeholders = columns.map(() => "?").join(", ");
           const colList = columns.join(", ");
           const updates = columns.filter((c) => c !== "id").map((c) => `${c} = excluded.${c}`).join(", ");

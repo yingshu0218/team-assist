@@ -19,11 +19,10 @@ export async function GET(request: NextRequest) {
     const db = getDb();
     const lid = parseInt(ledgerId, 10);
 
-    // 获取所有联系人
+    // 联系人是全局 CRM 数据；当前账本只决定事件与关系边的范围。
     const contacts = await db
       .select({ id: crm_contacts.id, name: crm_contacts.name, company: crm_contacts.company })
-      .from(crm_contacts)
-      .where(eq(crm_contacts.ledger_id, lid));
+      .from(crm_contacts);
 
     // 获取所有事件/项目
     const events = await db

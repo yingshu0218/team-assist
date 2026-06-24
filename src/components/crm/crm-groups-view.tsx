@@ -48,13 +48,13 @@ export function CrmGroupsView() {
   const { data: groups, loading, refetch } = useFetch<CrmGroup[]>(url);
 
   // 获取分组下的联系人
-  const contactsUrl = activeLedgerId ? `/api/crm/contacts?ledger_id=${activeLedgerId}&group_id=${selectedGroupId || ""}` : null;
+  const contactsUrl = `/api/crm/contacts?group_id=${selectedGroupId || ""}`;
   const { data: groupContacts, refetch: refetchGroupContacts } = useFetch<CrmContact[]>(
     selectedGroupId ? contactsUrl : null
   );
 
   // 可添加的联系人列表（搜索用）
-  const allContactsUrl = activeLedgerId ? `/api/crm/contacts?ledger_id=${activeLedgerId}${addMemberSearch ? `&search=${encodeURIComponent(addMemberSearch)}` : ""}` : null;
+  const allContactsUrl = `/api/crm/contacts${addMemberSearch ? `?search=${encodeURIComponent(addMemberSearch)}` : ""}`;
   const { data: allContacts } = useFetch<CrmContact[]>(showAddMember ? allContactsUrl : null);
 
   const resetForm = useCallback(() => {

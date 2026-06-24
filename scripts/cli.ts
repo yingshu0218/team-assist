@@ -605,10 +605,11 @@ async function statsCommand() {
 
 async function contactList(args: string[]) {
   const opts = parseArgs(args);
-  const ledgerId = getActiveLedgerId();
-  let url = `/api/crm/contacts?ledger_id=${ledgerId}`;
-  if (opts.search) url += `&search=${encodeURIComponent(opts.search)}`;
-  if (opts.group) url += `&group_id=${opts.group}`;
+  const params = new URLSearchParams();
+  if (opts.search) params.set("search", opts.search);
+  if (opts.group) params.set("group_id", opts.group);
+  const query = params.toString();
+  const url = `/api/crm/contacts${query ? `?${query}` : ""}`;
 
   const result = await apiFetch<{ id: number; name: string; phone: string | null; company: string | null; notes: string | null }[]>(url);
   if (!result.success) { console.error("查询失败:", result.error); process.exit(1); }
@@ -629,12 +630,11 @@ async function contactList(args: string[]) {
 
 async function contactAdd(args: string[]) {
   const opts = parseArgs(args);
-  const ledgerId = getActiveLedgerId();
   if (!opts.name) { console.error("用法: contact add --name <名称> [--phone <电话>] [--company <公司>] [--notes <备注>]"); process.exit(1); }
 
   const result = await apiFetch("/api/crm/contacts", {
     method: "POST",
-    body: JSON.stringify({ ledger_id: ledgerId, name: opts.name, phone: opts.phone || null, company: opts.company || null, notes: opts.notes || null }),
+    body: JSON.stringify({ name: opts.name, phone: opts.phone || null, company: opts.company || null, notes: opts.notes || null }),
   });
   if (!result.success) { console.error("创建失败:", result.error); process.exit(1); }
   console.log(c.green(`\n✓ 联系人「${opts.name}」创建成功\n`));
@@ -942,9 +942,8 @@ async function exportLedger(args: string[]) {
 
 async function exportContacts(args: string[]) {
   const opts = parseArgs(args);
-  const ledgerId = getActiveLedgerId();
   const format = opts.format || "csv";
-  const url = `/api/crm/contacts/export?ledger_id=${ledgerId}&format=${format}`;
+  const url = `/api/crm/contacts/export?format=${format}`;
 
   const baseUrl = getApiBase();
   const token = getToken();
