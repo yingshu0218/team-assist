@@ -83,6 +83,7 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
     { id: "crm-events" as Tab, label: "事件项目", icon: Calendar },
     { id: "crm-relationships" as Tab, label: "关联关系", icon: Link2 },
     { id: "crm-graph" as Tab, label: "关系图谱", icon: Network },
+    { id: "crm-timeline" as Tab, label: "时间线", icon: Calendar },
   ];
 
   const handleCreateLedger = async () => {
