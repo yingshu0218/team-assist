@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect } from "react";
 import {
   Plus,
   ArrowRight,
-  Receipt,
   BookOpen,
   Users,
   TrendingUp,
@@ -18,6 +17,7 @@ import { useLedger } from "@/hooks/use-ledger";
 import { useFetch } from "@/hooks/use-data";
 import { authHeaders } from "@/hooks/use-data";
 import { formatCurrency, formatDate } from "@/lib/constants";
+import { resolveLedgerSelection } from "@/lib/ledger-selection";
 import type {
   StatsResponse,
   Transaction,
@@ -48,6 +48,8 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
   const [overviewsLoading, setOverviewsLoading] = useState(true);
   const [totalContacts, setTotalContacts] = useState(0);
   const [contactsLoading, setContactsLoading] = useState(true);
+  const [trendLedgerId, setTrendLedgerId] = useState<number | null>(null);
+  const [expenseLedgerId, setExpenseLedgerId] = useState<number | null>(null);
 
   const triggerRefresh = useCallback(() => {
     setRefreshTick((t) => t + 1);
@@ -94,23 +96,39 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
     });
   }, [ledgers, refreshTick]);
 
-  // 获取联系人总数
   useEffect(() => {
+    const ledgerIds = ledgers.map((ledger) => ledger.id);
+    setTrendLedgerId((selectedId) => resolveLedgerSelection(ledgerIds, selectedId, activeLedgerId));
+    setExpenseLedgerId((selectedId) => resolveLedgerSelection(ledgerIds, selectedId, activeLedgerId));
+  }, [ledgers, activeLedgerId]);
+
+  // 获取所有账本的联系人总数
+  useEffect(() => {
+    if (ledgers.length === 0) {
+      setTotalContacts(0);
+      setContactsLoading(false);
+      return;
+    }
+
     setContactsLoading(true);
-    fetch(`/api/crm/contacts?_t=${refreshTick}`, {
-      headers: { ...authHeaders() },
-    })
-      .then((res) => res.json())
-      .then((json) => {
-        setTotalContacts(json.data?.length ?? 0);
+    Promise.all(
+      ledgers.map(async (ledger) => {
+        const res = await fetch(`/api/crm/contacts?ledger_id=${ledger.id}&_t=${refreshTick}`, {
+          headers: { ...authHeaders() },
+        });
+        const json = await res.json();
+        return json.data?.length ?? 0;
       })
+    )
+      .then((counts) => setTotalContacts(counts.reduce((total, count) => total + count, 0)))
       .catch(() => setTotalContacts(0))
       .finally(() => setContactsLoading(false));
-  }, [refreshTick]);
+  }, [ledgers, refreshTick]);
 
-  // 当前账本的详细统计
-  const statsUrl = activeLedgerId ? `/api/stats?ledger_id=${activeLedgerId}&_t=${refreshTick}` : null;
-  const { data: activeStats, loading: statsLoading } = useFetch<StatsResponse>(statsUrl);
+  const trendStatsUrl = trendLedgerId ? `/api/stats?ledger_id=${trendLedgerId}&_t=${refreshTick}` : null;
+  const expenseStatsUrl = expenseLedgerId ? `/api/stats?ledger_id=${expenseLedgerId}&_t=${refreshTick}` : null;
+  const { data: trendStats, loading: trendLoading } = useFetch<StatsResponse>(trendStatsUrl);
+  const { data: expenseStats, loading: expenseLoading } = useFetch<StatsResponse>(expenseStatsUrl);
 
   // 当前账本的分类
   const catUrl = activeLedgerId ? `/api/categories?ledger_id=${activeLedgerId}` : null;
@@ -155,31 +173,32 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
         </Button>
       </div>
 
-      {/* 联系人数量卡片 */}
-      <Card
-        className="cursor-pointer transition-shadow hover:shadow-md"
-        onClick={() => onNavigate("crm-contacts")}
-      >
-        <CardContent className="flex items-center gap-4 p-5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-100 dark:bg-violet-900/50">
-            <Users className="h-6 w-6 text-violet-600 dark:text-violet-400" />
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-muted-foreground">联系人</p>
+      {/* 每个账本的概览卡片 */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <Card
+          className="cursor-pointer transition-shadow hover:shadow-md"
+          onClick={() => onNavigate("crm-contacts")}
+        >
+          <CardContent className="p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex size-6 items-center justify-center rounded-md bg-violet-100 dark:bg-violet-900/50">
+                  <Users className="size-3.5 text-violet-600 dark:text-violet-400" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">联系人</h3>
+              </div>
+              <ArrowRight className="size-4 text-muted-foreground" />
+            </div>
             {contactsLoading ? (
-              <div className="mt-1 h-8 w-16 animate-pulse rounded bg-muted" />
+              <div className="h-12 animate-pulse rounded bg-muted" />
             ) : (
-              <p className="text-2xl font-bold tabular-nums text-violet-600 dark:text-violet-400">
+              <p className="text-3xl font-semibold tabular-nums text-violet-600 dark:text-violet-400">
                 {totalContacts}
               </p>
             )}
-          </div>
-          <ArrowRight className="h-5 w-5 text-muted-foreground" />
-        </CardContent>
-      </Card>
-
-      {/* 每个账本的概览卡片 */}
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <p className="mt-1 text-[10px] text-muted-foreground">全部账本联系人</p>
+          </CardContent>
+        </Card>
         {overviewsLoading ? (
           ledgers.map((ledger) => (
             <Card key={ledger.id}>
@@ -188,8 +207,8 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
                   <div className="h-2.5 w-2.5 rounded-full bg-muted" />
                   <div className="h-4 w-24 animate-pulse rounded bg-muted" />
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  {Array.from({ length: 3 }).map((_, i) => (
+                <div className="grid grid-cols-2 gap-3">
+                  {Array.from({ length: 2 }).map((_, i) => (
                     <div key={i} className="space-y-1">
                       <div className="h-3 w-12 animate-pulse rounded bg-muted" />
                       <div className="h-5 w-16 animate-pulse rounded bg-muted" />
@@ -231,8 +250,7 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
-                    {/* 总收入 */}
+                  <div className="grid grid-cols-2 gap-3">
                     <div>
                       <div className="flex items-center gap-1 mb-0.5">
                         <TrendingUp className="h-3 w-3 text-emerald-600" />
@@ -243,7 +261,6 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
                       </p>
                       <p className="text-[10px] text-muted-foreground">{incomeCount} 笔</p>
                     </div>
-                    {/* 总支出 */}
                     <div>
                       <div className="flex items-center gap-1 mb-0.5">
                         <TrendingDown className="h-3 w-3 text-red-600" />
@@ -254,18 +271,8 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
                       </p>
                       <p className="text-[10px] text-muted-foreground">{expenseCount} 笔</p>
                     </div>
-                    {/* 记账笔数 */}
-                    <div>
-                      <div className="flex items-center gap-1 mb-0.5">
-                        <Receipt className="h-3 w-3 text-indigo-600" />
-                        <span className="text-[10px] font-medium text-muted-foreground">笔数</span>
-                      </div>
-                      <p className="text-sm font-semibold tabular-nums text-indigo-600">
-                        {transactionCount}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">全部记录</p>
-                    </div>
                   </div>
+                  <p className="mt-3 text-[10px] text-muted-foreground">共 {transactionCount} 笔记录</p>
                 </CardContent>
               </Card>
             );
@@ -276,7 +283,17 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
       {/* 当前账本详情：图表 + 最近交易 */}
       {activeLedger && (
         <>
-          <OverviewCharts stats={activeStats} loading={statsLoading} />
+          <OverviewCharts
+            ledgers={ledgers}
+            trendLedgerId={trendLedgerId}
+            expenseLedgerId={expenseLedgerId}
+            trendStats={trendStats}
+            expenseStats={expenseStats}
+            trendLoading={trendLoading}
+            expenseLoading={expenseLoading}
+            onTrendLedgerChange={setTrendLedgerId}
+            onExpenseLedgerChange={setExpenseLedgerId}
+          />
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">

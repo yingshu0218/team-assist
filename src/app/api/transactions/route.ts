@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/storage/database/sqlite-client";
 import { transactions, categories } from "@/storage/database/shared/schema";
 import { authenticateRequest, authFailResponse } from "@/lib/auth";
+import { formatTransactions } from "@/lib/transactions";
 import { eq, desc, asc, and, gte, lte, like, sql } from "drizzle-orm";
 
 // 获取交易列表
@@ -46,13 +47,7 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .offset(offset);
 
-    // 格式化结果：合并 category 信息到 transaction 对象
-    const formatted = data.map((row) => ({
-      ...row.transaction,
-      category_name: row.category_name,
-      category_color: row.category_color,
-      category_icon: row.category_icon,
-    }));
+    const formatted = formatTransactions(data);
 
     // 总数
     const countResult = await db

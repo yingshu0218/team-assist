@@ -14,12 +14,27 @@ import {
   Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatCurrency } from "@/lib/constants";
-import type { StatsResponse } from "@/lib/types";
+import type { Ledger, StatsResponse } from "@/lib/types";
 
 interface OverviewChartsProps {
-  stats: StatsResponse | null;
-  loading: boolean;
+  ledgers: Ledger[];
+  trendLedgerId: number | null;
+  expenseLedgerId: number | null;
+  trendStats: StatsResponse | null;
+  expenseStats: StatsResponse | null;
+  trendLoading: boolean;
+  expenseLoading: boolean;
+  onTrendLedgerChange: (ledgerId: number) => void;
+  onExpenseLedgerChange: (ledgerId: number) => void;
 }
 
 const PIE_COLORS = [
@@ -42,9 +57,46 @@ function getThemeColor(varName: string, fallback: string): string {
   return value || fallback;
 }
 
-export function OverviewCharts({ stats, loading }: OverviewChartsProps) {
-  const dailyTrend = stats?.dailyTrend || [];
-  const categoryBreakdown = stats?.categoryBreakdown || [];
+function LedgerSelect({
+  ledgers,
+  value,
+  onValueChange,
+}: {
+  ledgers: Ledger[];
+  value: number | null;
+  onValueChange: (ledgerId: number) => void;
+}) {
+  return (
+    <Select value={value === null ? undefined : String(value)} onValueChange={(id) => onValueChange(Number(id))}>
+      <SelectTrigger size="sm" className="max-w-36">
+        <SelectValue placeholder="选择账本" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectGroup>
+          {ledgers.map((ledger) => (
+            <SelectItem key={ledger.id} value={String(ledger.id)}>
+              {ledger.name}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
+  );
+}
+
+export function OverviewCharts({
+  ledgers,
+  trendLedgerId,
+  expenseLedgerId,
+  trendStats,
+  expenseStats,
+  trendLoading,
+  expenseLoading,
+  onTrendLedgerChange,
+  onExpenseLedgerChange,
+}: OverviewChartsProps) {
+  const dailyTrend = trendStats?.dailyTrend || [];
+  const categoryBreakdown = expenseStats?.categoryBreakdown || [];
 
   // 最多显示最近30天的趋势数据
   const recentTrend = dailyTrend.slice(-30).map((d) => ({
@@ -71,10 +123,13 @@ export function OverviewCharts({ stats, loading }: OverviewChartsProps) {
       {/* 收支趋势图 */}
       <Card className="lg:col-span-2">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">收支趋势</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-sm">收支趋势</CardTitle>
+            <LedgerSelect ledgers={ledgers} value={trendLedgerId} onValueChange={onTrendLedgerChange} />
+          </div>
         </CardHeader>
         <CardContent className="pl-2">
-          {loading ? (
+          {trendLoading ? (
             <div className="h-64 animate-pulse rounded bg-muted" />
           ) : recentTrend.length === 0 ? (
             <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
@@ -122,10 +177,13 @@ export function OverviewCharts({ stats, loading }: OverviewChartsProps) {
       {/* 分类占比图 */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">支出分类占比</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-sm">支出分类占比</CardTitle>
+            <LedgerSelect ledgers={ledgers} value={expenseLedgerId} onValueChange={onExpenseLedgerChange} />
+          </div>
         </CardHeader>
         <CardContent>
-          {loading ? (
+          {expenseLoading ? (
             <div className="h-64 animate-pulse rounded bg-muted" />
           ) : pieData.length === 0 ? (
             <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
