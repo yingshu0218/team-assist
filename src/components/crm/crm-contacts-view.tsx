@@ -264,11 +264,11 @@ export function CrmContactsView() {
               </Card>
 
               <Card>
-                <CardHeader className="pb-3"><CardTitle className="text-sm">跟进记录</CardTitle></CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between pb-3"><CardTitle className="text-sm">跟进记录</CardTitle><Button variant="ghost" size="sm" onClick={() => setShowContactTimeline(true)}>查看全部</Button></CardHeader>
                 <CardContent>
                   {detail.logs && detail.logs.length > 0 ? (
                     <div className="space-y-3">
-                      {detail.logs.map((log: CrmContactLog) => <div key={log.id} className="border-l-2 border-primary/30 pl-3"><p className="text-sm">{log.content}</p><p className="mt-1 text-xs text-muted-foreground">{new Date(log.log_date).toLocaleDateString("zh-CN")}</p></div>)}
+                      {detail.logs.slice(0, 5).map((log: CrmContactLog) => <div key={log.id} className="grid grid-cols-[5rem_1fr] gap-3 rounded-md border p-3"><time className="font-semibold text-primary">{new Date(log.log_date).toLocaleDateString("zh-CN", { month: "2-digit", day: "2-digit" }).replace("/", ".")}</time><p className="text-sm">{log.content}</p></div>)}
                     </div>
                   ) : <p className="text-sm text-muted-foreground">暂无跟进记录</p>}
                 </CardContent>

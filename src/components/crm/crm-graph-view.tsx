@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLedger } from "@/hooks/use-ledger";
 import { useFetch } from "@/hooks/use-data";
 import { useTheme } from "next-themes";
@@ -40,8 +41,9 @@ export function CrmGraphView() {
   const [ForceGraphComp, setForceGraphComp] = useState<React.ComponentType<ForceGraph2DType> | null>(null);
   const [hoverNode, setHoverNode] = useState<GraphNode | null>(null);
   const [hoverLinks, setHoverLinks] = useState<GraphLink[]>([]);
+  const [preset, setPreset] = useState("contacts");
 
-  const graphUrl = `/api/crm/graph${activeLedgerId ? `?ledger_id=${activeLedgerId}` : ""}`;
+  const graphUrl = `/api/crm/graph?${activeLedgerId ? `ledger_id=${activeLedgerId}&` : ""}preset=${preset}`;
   const { data: graphData, loading } = useFetch<GraphData>(graphUrl);
 
   const isDark = resolvedTheme === "dark";
@@ -208,6 +210,7 @@ export function CrmGraphView() {
           <p className="text-sm text-muted-foreground">可视化联系人、事件之间的关联网络</p>
         </div>
         <div className="flex gap-2">
+          <Select value={preset} onValueChange={setPreset}><SelectTrigger size="sm" className="w-40"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="contacts">联系人网络</SelectItem><SelectItem value="mixed">联系人 + 事件</SelectItem><SelectItem value="events">事件/项目网络</SelectItem></SelectContent></Select>
           <Button variant="outline" size="icon" onClick={() => handleZoom("in")} title="放大">
             <ZoomIn className="h-4 w-4" />
           </Button>
