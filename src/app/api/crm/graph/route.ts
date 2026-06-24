@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
         .from(crm_event_participants)
         .where(inArray(crm_event_participants.event_id, eventIds));
 
-      participantLinks = preset === "contacts"
+      participantLinks = preset === "events" ? [] : preset === "contacts"
         ? participants.flatMap((participant, index) => participants
           .filter((candidate) => candidate.event_id === participant.event_id && candidate.contact_id > participant.contact_id)
           .map((candidate) => ({ source: `contact-${participant.contact_id}`, target: `contact-${candidate.contact_id}`, label: "共同参与事件", color: "#94a3b8" })))
@@ -52,14 +52,14 @@ export async function GET(request: NextRequest) {
 
     // 构建节点
     const nodes = [
-      ...contacts.map((c) => ({
+      ...(preset === "events" ? [] : contacts.map((c) => ({
         id: `contact-${c.id}`,
         type: "contact" as const,
         label: c.name,
         sublabel: c.company,
         color: "#b87333",
         borderColor: "#b87333",
-      })),
+      }))),
       ...(preset === "contacts" ? [] : events.map((e) => ({
         id: `event-${e.id}`,
         type: e.type as "event" | "project",
@@ -72,7 +72,11 @@ export async function GET(request: NextRequest) {
 
     // 构建边
     const links = [
-      ...relationships.filter((r) => preset !== "contacts" || (r.source_type === "contact" && r.target_type === "contact")).map((r) => ({
+      ...relationships.filter((r) => preset === "contacts"
+        ? r.source_type === "contact" && r.target_type === "contact"
+        : preset === "events"
+          ? r.source_type === "event" && r.target_type === "event"
+          : true).map((r) => ({
         source: `${r.source_type}-${r.source_id}`,
         target: `${r.target_type}-${r.target_id}`,
         label: r.label,
