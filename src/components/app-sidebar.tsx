@@ -67,9 +67,11 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
   const [showCreateLedger, setShowCreateLedger] = useState(false);
   const [ledgerName, setLedgerName] = useState("");
   const [ledgerDesc, setLedgerDesc] = useState("");
+  const [ledgerInitialBalance, setLedgerInitialBalance] = useState("0");
   const [editingLedger, setEditingLedger] = useState<Ledger | null>(null);
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
+  const [editInitialBalance, setEditInitialBalance] = useState("0");
 
   const accountItems = [
     { id: "transactions" as Tab, label: "收支明细", icon: Receipt },
@@ -91,12 +93,14 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
     const res = await apiPost<Ledger>("/api/ledgers", {
       name: ledgerName.trim(),
       description: ledgerDesc.trim(),
+      initial_balance: ledgerInitialBalance || "0",
     });
     if (res.success && res.data) {
       await refreshLedgers();
       setActiveLedgerId(res.data.id);
       setLedgerName("");
       setLedgerDesc("");
+      setLedgerInitialBalance("0");
       setShowCreateLedger(false);
     }
   };
@@ -106,6 +110,7 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
     const res = await apiPut<Ledger>(`/api/ledgers/${editingLedger.id}`, {
       name: editName.trim(),
       description: editDesc.trim(),
+      initial_balance: editInitialBalance || "0",
     });
     if (res.success) {
       await refreshLedgers();
@@ -223,6 +228,7 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
                       setEditingLedger(activeLedger);
                       setEditName(activeLedger.name);
                       setEditDesc(activeLedger.description || "");
+                      setEditInitialBalance(activeLedger.initial_balance);
                     }}
                   >
                     <Pencil className="h-3 w-3" />
@@ -243,6 +249,7 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
                         setEditingLedger(activeLedger);
                         setEditName(activeLedger.name);
                         setEditDesc(activeLedger.description || "");
+                        setEditInitialBalance(activeLedger.initial_balance);
                       }}>
                         <Pencil className="mr-2 h-3.5 w-3.5" />
                         重命名
@@ -365,6 +372,17 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
                 placeholder="账本备注说明"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="ledger-initial-balance">初始余额</Label>
+              <Input
+                id="ledger-initial-balance"
+                type="number"
+                step="0.01"
+                value={ledgerInitialBalance}
+                onChange={(e) => setLedgerInitialBalance(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateLedger(false)}>取消</Button>
@@ -394,6 +412,17 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
                 id="edit-desc"
                 value={editDesc}
                 onChange={(e) => setEditDesc(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-initial-balance">初始余额</Label>
+              <Input
+                id="edit-initial-balance"
+                type="number"
+                step="0.01"
+                value={editInitialBalance}
+                onChange={(e) => setEditInitialBalance(e.target.value)}
+                placeholder="0.00"
               />
             </div>
           </div>
