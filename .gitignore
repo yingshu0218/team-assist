@@ -3,6 +3,8 @@ node_modules/
 .pnpm-store/
 .next/
 dist/
+.worktrees/
+.superpowers/
 
 # Local runtime state
 data/*.db
