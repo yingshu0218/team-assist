@@ -27,6 +27,7 @@ import { ExportDialog } from "@/components/export-dialog";
 import { useLedger } from "@/hooks/use-ledger";
 import { useFetch, apiDelete } from "@/hooks/use-data";
 import { formatCurrency, formatDate, getDateKey } from "@/lib/constants";
+import { getTransactionDisplay } from "@/lib/ledger-presentation";
 import type { Transaction, Category, CategoryGroup, TransactionType } from "@/lib/types";
 
 export function TransactionsView() {
@@ -247,7 +248,10 @@ export function TransactionsView() {
                 </div>
                 <Card>
                   <CardContent className="p-0">
-                    {group.items.map((tx, idx) => (
+                    {group.items.map((tx, idx) => {
+                      const display = getTransactionDisplay(tx.description, tx.category?.name || "未分类");
+
+                      return (
                       <div
                         key={tx.id}
                         className={`flex items-center justify-between px-4 py-3 transition-colors hover:bg-muted/30 group ${
@@ -266,8 +270,8 @@ export function TransactionsView() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-foreground truncate">
-                                {tx.category?.name || "未分类"}
+                              <span className="text-base font-semibold text-foreground truncate">
+                                {display.title}
                               </span>
                               {tx.tags && tx.tags.length > 0 && (
                                 <div className="flex gap-1">
@@ -286,9 +290,9 @@ export function TransactionsView() {
                                 </div>
                               )}
                             </div>
-                            {tx.description && (
+                            {display.category && (
                               <p className="text-xs text-muted-foreground truncate mt-0.5">
-                                {tx.description}
+                                {display.category}
                               </p>
                             )}
                           </div>
@@ -323,7 +327,8 @@ export function TransactionsView() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </CardContent>
                 </Card>
               </div>

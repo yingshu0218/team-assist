@@ -17,6 +17,7 @@ import { useLedger } from "@/hooks/use-ledger";
 import { useFetch } from "@/hooks/use-data";
 import { authHeaders } from "@/hooks/use-data";
 import { formatCurrency, formatDate } from "@/lib/constants";
+import { getLedgerBalance } from "@/lib/ledger-presentation";
 import { resolveLedgerSelection } from "@/lib/ledger-selection";
 import type {
   StatsResponse,
@@ -35,9 +36,6 @@ interface LedgerOverview {
   ledger: Ledger;
   totalIncome: number;
   totalExpense: number;
-  incomeCount: number;
-  expenseCount: number;
-  transactionCount: number;
 }
 
 export function DashboardView({ onNavigate }: DashboardViewProps) {
@@ -78,15 +76,11 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
             ledger,
             totalIncome: stats.totalIncome ?? 0,
             totalExpense: stats.totalExpense ?? 0,
-            incomeCount: stats.incomeCount ?? 0,
-            expenseCount: stats.expenseCount ?? 0,
-            transactionCount: stats.transactionCount ?? 0,
           };
         } catch {
           return {
             ledger,
             totalIncome: 0, totalExpense: 0,
-            incomeCount: 0, expenseCount: 0, transactionCount: 0,
           };
         }
       })
@@ -194,8 +188,8 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
                   <div className="h-2.5 w-2.5 rounded-full bg-muted" />
                   <div className="h-4 w-24 animate-pulse rounded bg-muted" />
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {Array.from({ length: 2 }).map((_, i) => (
+                <div className="grid grid-cols-3 gap-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="space-y-1">
                       <div className="h-3 w-12 animate-pulse rounded bg-muted" />
                       <div className="h-5 w-16 animate-pulse rounded bg-muted" />
@@ -206,8 +200,9 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
             </Card>
           ))
         ) : (
-          ledgerOverviews.map(({ ledger, totalIncome, totalExpense, incomeCount, expenseCount, transactionCount }) => {
+          ledgerOverviews.map(({ ledger, totalIncome, totalExpense }) => {
             const isActive = ledger.id === activeLedgerId;
+            const balance = getLedgerBalance(ledger.initial_balance, totalIncome, totalExpense);
 
             return (
               <Card
@@ -237,7 +232,7 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <div>
                       <div className="flex items-center gap-1 mb-0.5">
                         <TrendingUp className="h-3 w-3 text-emerald-600" />
@@ -246,7 +241,6 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
                       <p className="text-sm font-semibold tabular-nums text-emerald-600 truncate">
                         ¥{formatCurrency(totalIncome)}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">{incomeCount} 笔</p>
                     </div>
                     <div>
                       <div className="flex items-center gap-1 mb-0.5">
@@ -256,10 +250,16 @@ export function DashboardView({ onNavigate }: DashboardViewProps) {
                       <p className="text-sm font-semibold tabular-nums text-red-600 truncate">
                         ¥{formatCurrency(totalExpense)}
                       </p>
-                      <p className="text-[10px] text-muted-foreground">{expenseCount} 笔</p>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <span className="text-[10px] font-medium text-muted-foreground">余额</span>
+                      </div>
+                      <p className="text-sm font-semibold tabular-nums text-foreground truncate">
+                        ¥{formatCurrency(balance)}
+                      </p>
                     </div>
                   </div>
-                  <p className="mt-3 text-[10px] text-muted-foreground">共 {transactionCount} 笔记录</p>
                 </CardContent>
               </Card>
             );
