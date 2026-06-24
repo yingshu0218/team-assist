@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/storage/database/sqlite-client";
 import { crm_contacts, crm_groups, crm_group_members, crm_contact_logs } from "@/storage/database/shared/schema";
 import { authenticateRequest, authFailResponse } from "@/lib/auth";
-import { eq, asc } from "drizzle-orm";
+import { asc } from "drizzle-orm";
 
 // CRM 联系人导出：CSV / JSON 格式
 export async function GET(request: NextRequest) {
@@ -11,25 +11,18 @@ export async function GET(request: NextRequest) {
 
   try {
     const sp = request.nextUrl.searchParams;
-    const ledgerId = sp.get("ledger_id");
     const format = sp.get("format") || "csv";
 
-    if (!ledgerId) {
-      return NextResponse.json({ success: false, error: "缺少 ledger_id 参数" }, { status: 400 });
-    }
-
     const db = getDb();
-    const lid = parseInt(ledgerId, 10);
 
     // 查询联系人
     const contacts = await db
       .select()
       .from(crm_contacts)
-      .where(eq(crm_contacts.ledger_id, lid))
       .orderBy(asc(crm_contacts.name));
 
     // 查询分组及其成员
-    const groups = await db.select().from(crm_groups).where(eq(crm_groups.ledger_id, lid));
+    const groups = await db.select().from(crm_groups);
     const memberships = await db.select().from(crm_group_members);
 
     // 构建 contact -> groups 映射

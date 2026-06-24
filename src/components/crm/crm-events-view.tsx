@@ -71,7 +71,7 @@ export function CrmEventsView() {
   const { data: detail, refetch: refetchDetail } = useFetch<CrmEvent>(detailUrl);
 
   // 联系人列表（用于添加参与者）
-  const contactsUrl = activeLedgerId ? `/api/crm/contacts?ledger_id=${activeLedgerId}${participantSearch ? `&search=${encodeURIComponent(participantSearch)}` : ""}` : null;
+  const contactsUrl = `/api/crm/contacts${participantSearch ? `?search=${encodeURIComponent(participantSearch)}` : ""}`;
   const { data: allContacts } = useFetch<CrmContact[]>(showAddParticipant ? contactsUrl : null);
 
   const resetForm = useCallback(() => {

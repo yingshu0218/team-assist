@@ -26,7 +26,7 @@ export async function GET(request: Request) {
    - 交易: GET/POST ${baseUrl}/api/transactions?ledger_id=<ID>
    - 分类: GET/POST ${baseUrl}/api/categories?ledger_id=<ID>
    - 标签: GET/POST ${baseUrl}/api/tags?ledger_id=<ID>
-   - CRM联系人: GET/POST ${baseUrl}/api/crm/contacts?ledger_id=<ID>
+   - CRM联系人: GET/POST ${baseUrl}/api/crm/contacts
    - CRM分组: GET/POST ${baseUrl}/api/crm/groups?ledger_id=<ID>
    - CRM事件: GET/POST ${baseUrl}/api/crm/events?ledger_id=<ID>
    - CRM关联: GET/POST ${baseUrl}/api/crm/relationships?ledger_id=<ID>
@@ -66,7 +66,7 @@ CRM操作时：
       systemPrompt,
       curlExamples: [
         `# 查看引导\ncurl -s -H "Authorization: Bearer <YOUR_TOKEN>" ${baseUrl}/api/auth/guide`,
-        `# 添加联系人\ncurl -s -X POST -H "Authorization: Bearer <YOUR_TOKEN>" -H "Content-Type: application/json" -d '{"ledger_id":1,"name":"张三"}' ${baseUrl}/api/crm/contacts`,
+        `# 添加联系人\ncurl -s -X POST -H "Authorization: Bearer <YOUR_TOKEN>" -H "Content-Type: application/json" -d '{"name":"张三"}' ${baseUrl}/api/crm/contacts`,
         `# 列出账本\ncurl -s -H "Authorization: Bearer <YOUR_TOKEN>" ${baseUrl}/api/ledgers`,
       ],
     },
@@ -127,7 +127,7 @@ CRM操作时：
         },
       ],
       curlExamples: [
-        `# 添加联系人\ncurl -s -X POST -H "Authorization: Bearer <YOUR_TOKEN>" -H "Content-Type: application/json" -d '{"ledger_id":1,"name":"张三"}' ${baseUrl}/api/crm/contacts`,
+        `# 添加联系人\ncurl -s -X POST -H "Authorization: Bearer <YOUR_TOKEN>" -H "Content-Type: application/json" -d '{"name":"张三"}' ${baseUrl}/api/crm/contacts`,
         `# 查看引导\ncurl -s -H "Authorization: Bearer <YOUR_TOKEN>" ${baseUrl}/api/auth/guide`,
         `# 列出账本\ncurl -s -H "Authorization: Bearer <YOUR_TOKEN>" ${baseUrl}/api/ledgers`,
       ],
