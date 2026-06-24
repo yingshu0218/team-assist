@@ -41,7 +41,7 @@ export function CrmGraphView() {
   const [hoverNode, setHoverNode] = useState<GraphNode | null>(null);
   const [hoverLinks, setHoverLinks] = useState<GraphLink[]>([]);
 
-  const graphUrl = activeLedgerId ? `/api/crm/graph?ledger_id=${activeLedgerId}` : null;
+  const graphUrl = `/api/crm/graph${activeLedgerId ? `?ledger_id=${activeLedgerId}` : ""}`;
   const { data: graphData, loading } = useFetch<GraphData>(graphUrl);
 
   const isDark = resolvedTheme === "dark";

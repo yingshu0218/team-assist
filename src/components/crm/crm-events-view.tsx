@@ -158,7 +158,7 @@ export function CrmEventsView() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto w-full max-w-6xl space-y-6 p-4 sm:p-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">事件与项目</h2>
@@ -171,8 +171,9 @@ export function CrmEventsView() {
       </div>
 
       {/* 筛选栏 */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-xs">
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-3 p-3">
+        <div className="relative min-w-56 flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="搜索事件/项目..."
@@ -191,7 +192,8 @@ export function CrmEventsView() {
             <SelectItem value="project">项目</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="list" className="space-y-4">
         <TabsList>
@@ -202,9 +204,9 @@ export function CrmEventsView() {
         {/* 列表 */}
         <TabsContent value="list">
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">加载中...</div>
+            <Card><CardContent className="py-16 text-center text-muted-foreground">加载中...</CardContent></Card>
           ) : !events?.length ? (
-            <div className="text-center py-8 text-muted-foreground">暂无事件或项目</div>
+            <Card><CardContent className="py-16 text-center text-muted-foreground">暂无事件或项目</CardContent></Card>
           ) : (
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {events.map((event) => {

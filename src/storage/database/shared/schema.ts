@@ -103,6 +103,7 @@ export const crm_contacts = sqliteTable(
     name: text("name").notNull(),
     phone: text("phone"),
     company: text("company"),
+    region: text("region"),
     notes: text("notes"),
     created_at: text("created_at").default(sql`(datetime('now'))`).notNull(),
     updated_at: text("updated_at").default(sql`(datetime('now'))`).notNull(),
