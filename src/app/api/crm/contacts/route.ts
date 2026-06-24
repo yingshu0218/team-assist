@@ -3,6 +3,7 @@ import { getDb } from "@/storage/database/sqlite-client";
 import { crm_contacts } from "@/storage/database/shared/schema";
 import { authenticateRequest, authFailResponse } from "@/lib/auth";
 import { asc, eq, like, and, sql } from "drizzle-orm";
+import { parseContactRegions, serializeContactRegions } from "@/lib/contact-regions";
 
 // 获取联系人列表
 export async function GET(request: NextRequest) {
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
         .where(and(...conditions))
         .orderBy(asc(crm_contacts.name));
 
-      return NextResponse.json({ success: true, data });
+      return NextResponse.json({ success: true, data: data.map((contact) => ({ ...contact, region: parseContactRegions(contact.region) })) });
     }
 
     const data = await db
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
         : undefined)
       .orderBy(asc(crm_contacts.name));
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({ success: true, data: data.map((contact) => ({ ...contact, region: parseContactRegions(contact.region) })) });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "未知错误";
     return NextResponse.json({ success: false, error: msg }, { status: 500 });
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, phone, company, notes } = body;
+    const { name, phone, company, region, notes } = body;
 
     if (!name?.trim()) {
       return NextResponse.json(
@@ -81,11 +82,12 @@ export async function POST(request: NextRequest) {
         name: name.trim(),
         phone: phone?.trim() || null,
         company: company?.trim() || null,
+        region: serializeContactRegions(region),
         notes: notes?.trim() || null,
       })
       .returning();
 
-    return NextResponse.json({ success: true, data: result[0] });
+    return NextResponse.json({ success: true, data: result[0] ? { ...result[0], region: parseContactRegions(result[0].region) } : null });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "未知错误";
     return NextResponse.json({ success: false, error: msg }, { status: 500 });

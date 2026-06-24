@@ -97,6 +97,7 @@ export interface CrmContact {
   name: string;
   phone: string | null;
   company: string | null;
+  region: string[];
   notes: string | null;
   created_at: string;
   updated_at: string;

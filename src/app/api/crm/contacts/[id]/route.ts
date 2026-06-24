@@ -6,6 +6,7 @@ import {
 } from "@/storage/database/shared/schema";
 import { authenticateRequest, authFailResponse } from "@/lib/auth";
 import { eq, and, desc, sql } from "drizzle-orm";
+import { parseContactRegions, serializeContactRegions } from "@/lib/contact-regions";
 
 // 获取联系人详情（聚合 logs/groups/events/relationships）
 export async function GET(
@@ -86,6 +87,7 @@ export async function GET(
       success: true,
       data: {
         ...contact,
+        region: parseContactRegions(contact.region),
         logs,
         groups,
         events,
@@ -114,6 +116,7 @@ export async function PUT(
     if (body.name !== undefined) updates.name = body.name.trim();
     if (body.phone !== undefined) updates.phone = body.phone?.trim() || null;
     if (body.company !== undefined) updates.company = body.company?.trim() || null;
+    if (body.region !== undefined) updates.region = serializeContactRegions(body.region);
     if (body.notes !== undefined) updates.notes = body.notes?.trim() || null;
 
     const db = getDb();
@@ -123,7 +126,7 @@ export async function PUT(
       .where(eq(crm_contacts.id, parseInt(id, 10)))
       .returning();
 
-    return NextResponse.json({ success: true, data: result[0] });
+    return NextResponse.json({ success: true, data: result[0] ? { ...result[0], region: parseContactRegions(result[0].region) } : null });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "未知错误";
     return NextResponse.json({ success: false, error: msg }, { status: 500 });

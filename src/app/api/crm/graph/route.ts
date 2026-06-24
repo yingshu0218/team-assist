@@ -12,12 +12,8 @@ export async function GET(request: NextRequest) {
   try {
     const ledgerId = request.nextUrl.searchParams.get("ledger_id");
 
-    if (!ledgerId) {
-      return NextResponse.json({ success: false, error: "缺少 ledger_id 参数" }, { status: 400 });
-    }
-
     const db = getDb();
-    const lid = parseInt(ledgerId, 10);
+    const lid = ledgerId ? parseInt(ledgerId, 10) : null;
 
     // 联系人是全局 CRM 数据；当前账本只决定事件与关系边的范围。
     const contacts = await db
@@ -28,13 +24,13 @@ export async function GET(request: NextRequest) {
     const events = await db
       .select({ id: crm_events.id, title: crm_events.title, type: crm_events.type })
       .from(crm_events)
-      .where(eq(crm_events.ledger_id, lid));
+      .where(lid === null ? undefined : eq(crm_events.ledger_id, lid));
 
     // 获取所有关联关系
     const relationships = await db
       .select()
       .from(crm_relationships)
-      .where(eq(crm_relationships.ledger_id, lid));
+      .where(lid === null ? undefined : eq(crm_relationships.ledger_id, lid));
 
     // 获取事件参与者关系
     let participantLinks: Array<{ source: string; target: string; label: string; color: string }> = [];

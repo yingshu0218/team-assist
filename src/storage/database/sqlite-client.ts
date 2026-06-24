@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./shared/schema";
-import { requiresGlobalContactMigration } from "@/lib/contact-migration";
+import { requiresContactRegionMigration, requiresGlobalContactMigration } from "@/lib/contact-migration";
 import path from "path";
 import fs from "fs";
 
@@ -43,6 +43,13 @@ function migrateContactsToGlobal(sqlite: Database.Database): void {
     })();
   } finally {
     sqlite.pragma("foreign_keys = ON");
+  }
+}
+
+function addContactRegionColumn(sqlite: Database.Database): void {
+  const columns = sqlite.prepare("PRAGMA table_info(crm_contacts)").all() as Array<{ name: string }>;
+  if (requiresContactRegionMigration(columns.map((column) => column.name))) {
+    sqlite.exec("ALTER TABLE crm_contacts ADD COLUMN region TEXT");
   }
 }
 
@@ -136,6 +143,7 @@ export function initDatabase(): void {
       name TEXT NOT NULL,
       phone TEXT,
       company TEXT,
+      region TEXT,
       notes TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -238,6 +246,7 @@ export function initDatabase(): void {
   `);
 
   migrateContactsToGlobal(sqlite);
+  addContactRegionColumn(sqlite);
 
   sqlite.close();
 }

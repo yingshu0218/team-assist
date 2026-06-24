@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   Plus,
   Search,
   Pencil,
   Trash2,
-  Phone,
   Building2,
   MessageSquare,
   ChevronRight,
@@ -37,9 +36,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useFetch, apiPost, apiPut, apiDelete } from "@/hooks/use-data";
 import { ExportDialog } from "@/components/export-dialog";
 import type { CrmContact, CrmContactLog } from "@/lib/types";
+import { groupContacts, type ContactGroupMode } from "@/lib/contact-groups";
 
 export function CrmContactsView() {
   const [search, setSearch] = useState("");
@@ -54,7 +55,9 @@ export function CrmContactsView() {
   const [formName, setFormName] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formCompany, setFormCompany] = useState("");
+  const [formRegion, setFormRegion] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [groupMode, setGroupMode] = useState<ContactGroupMode>("surname");
   const [logContent, setLogContent] = useState("");
   const [showExport, setShowExport] = useState(false);
 
@@ -68,6 +71,7 @@ export function CrmContactsView() {
     setFormName("");
     setFormPhone("");
     setFormCompany("");
+    setFormRegion("");
     setFormNotes("");
   }, []);
 
@@ -77,6 +81,7 @@ export function CrmContactsView() {
       name: formName.trim(),
       phone: formPhone.trim() || undefined,
       company: formCompany.trim() || undefined,
+      region: formRegion.split(/[，,]/).map((region) => region.trim()).filter(Boolean),
       notes: formNotes.trim() || undefined,
     });
     if (res.success) {
@@ -92,6 +97,7 @@ export function CrmContactsView() {
       name: formName.trim(),
       phone: formPhone.trim() || null,
       company: formCompany.trim() || null,
+      region: formRegion.split(/[，,]/).map((region) => region.trim()).filter(Boolean),
       notes: formNotes.trim() || null,
     });
     if (res.success) {
@@ -130,8 +136,11 @@ export function CrmContactsView() {
     setFormName(contact.name);
     setFormPhone(contact.phone || "");
     setFormCompany(contact.company || "");
+    setFormRegion(contact.region.join("，"));
     setFormNotes(contact.notes || "");
   };
+
+  const contactGroups = useMemo(() => groupContacts(contacts || [], groupMode), [contacts, groupMode]);
 
   return (
     <div className="flex h-full">
@@ -158,6 +167,16 @@ export function CrmContactsView() {
               className="pl-8"
             />
           </div>
+          <Select value={groupMode} onValueChange={(value) => setGroupMode(value as ContactGroupMode)}>
+            <SelectTrigger size="sm" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="surname">按姓氏分组</SelectItem>
+              <SelectItem value="region">按地区分组</SelectItem>
+              <SelectItem value="created_at">按添加时间分组</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <ScrollArea className="flex-1">
           {loading ? (
@@ -165,30 +184,24 @@ export function CrmContactsView() {
           ) : !contacts?.length ? (
             <div className="p-4 text-center text-sm text-muted-foreground">暂无联系人</div>
           ) : (
-            <div className="divide-y">
-              {contacts.map((contact) => (
-                <button
-                  key={contact.id}
-                  className={`w-full text-left p-3 hover:bg-muted/50 transition-colors ${selectedId === contact.id ? "bg-muted" : ""}`}
-                  onClick={() => setSelectedId(contact.id)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-[#b87333]/10 text-[#b87333] flex items-center justify-center text-sm font-medium">
-                        {contact.name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{contact.name}</p>
-                        {contact.company && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Building2 className="h-3 w-3" />{contact.company}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-col gap-3 p-2">
+              {contactGroups.map((group) => (
+                <section key={group.label}>
+                  <p className="px-2 py-1 text-xs font-medium text-muted-foreground">{group.label}</p>
+                  <div className="overflow-hidden rounded-md border">
+                    {group.items.map((contact) => (
+                      <button key={contact.id} className={`w-full border-b p-3 text-left last:border-b-0 hover:bg-muted/50 ${selectedId === contact.id ? "bg-muted" : ""}`} onClick={() => setSelectedId(contact.id)}>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium">{contact.name}</p>
+                            <p className="truncate text-xs text-muted-foreground">{[contact.phone, contact.company].filter(Boolean).join(" · ") || "未填写联系方式"}</p>
+                          </div>
+                          <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                        </div>
+                      </button>
+                    ))}
                   </div>
-                </button>
+                </section>
               ))}
             </div>
           )}
@@ -234,12 +247,18 @@ export function CrmContactsView() {
                   <CardTitle className="text-sm">联系信息</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="w-12 shrink-0 text-muted-foreground">姓名</span>
+                    <span>{detail.name}</span>
+                  </div>
                   {detail.phone && (
                     <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span className="w-12 shrink-0 text-muted-foreground">电话</span>
                       <span>{detail.phone}</span>
                     </div>
                   )}
+                  {detail.company && <div className="flex items-center gap-2"><span className="w-12 shrink-0 text-muted-foreground">单位</span><span>{detail.company}</span></div>}
+                  {detail.region.length > 0 && <div className="flex items-center gap-2"><span className="w-12 shrink-0 text-muted-foreground">地区</span><span>{detail.region.join("、")}</span></div>}
                   {detail.notes && (
                     <div className="flex items-start gap-2">
                       <span className="text-muted-foreground shrink-0">备注:</span>
@@ -249,6 +268,17 @@ export function CrmContactsView() {
                   {!detail.phone && !detail.notes && (
                     <p className="text-muted-foreground">暂无联系信息</p>
                   )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-3"><CardTitle className="text-sm">跟进记录</CardTitle></CardHeader>
+                <CardContent>
+                  {detail.logs && detail.logs.length > 0 ? (
+                    <div className="space-y-3">
+                      {detail.logs.map((log: CrmContactLog) => <div key={log.id} className="border-l-2 border-primary/30 pl-3"><p className="text-sm">{log.content}</p><p className="mt-1 text-xs text-muted-foreground">{new Date(log.log_date).toLocaleDateString("zh-CN")}</p></div>)}
+                    </div>
+                  ) : <p className="text-sm text-muted-foreground">暂无跟进记录</p>}
                 </CardContent>
               </Card>
 
@@ -320,28 +350,6 @@ export function CrmContactsView() {
                 </CardContent>
               </Card>
 
-              {/* 联系记录 */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">跟进记录</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {detail.logs && detail.logs.length > 0 ? (
-                    <div className="space-y-3">
-                      {detail.logs.map((log: CrmContactLog) => (
-                        <div key={log.id} className="border-l-2 border-primary/30 pl-3">
-                          <p className="text-sm">{log.content}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(log.log_date).toLocaleDateString("zh-CN")}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">暂无跟进记录</p>
-                  )}
-                </CardContent>
-              </Card>
             </div>
           </ScrollArea>
         ) : (
@@ -371,6 +379,7 @@ export function CrmContactsView() {
               <Label>单位</Label>
               <Input value={formCompany} onChange={(e) => setFormCompany(e.target.value)} placeholder="所在单位" />
             </div>
+            <div className="space-y-2"><Label>地区</Label><Input value={formRegion} onChange={(e) => setFormRegion(e.target.value)} placeholder="可输入多个地区，用逗号分隔" /></div>
             <div className="space-y-2">
               <Label>备注</Label>
               <Input value={formNotes} onChange={(e) => setFormNotes(e.target.value)} placeholder="备注信息" />
@@ -402,6 +411,7 @@ export function CrmContactsView() {
               <Label>单位</Label>
               <Input value={formCompany} onChange={(e) => setFormCompany(e.target.value)} />
             </div>
+            <div className="space-y-2"><Label>地区</Label><Input value={formRegion} onChange={(e) => setFormRegion(e.target.value)} placeholder="多个地区用逗号分隔" /></div>
             <div className="space-y-2">
               <Label>备注</Label>
               <Input value={formNotes} onChange={(e) => setFormNotes(e.target.value)} />
