@@ -1,6 +1,9 @@
 export interface TimelineEntry {
   id: number
-  date: string
+  contact_id: number
+  contact_name: string
+  content: string
+  log_date: string
 }
 
 export type FishbonePeriod = 'month'
@@ -8,7 +11,7 @@ export type FishbonePeriod = 'month'
 export interface TimelineGroup {
   key: string
   label: string
-  ids: number[]
+  items: TimelineEntry[]
 }
 
 export function formatTimelineDate(date: string): string {
@@ -22,18 +25,18 @@ export function groupFishboneTimeline(
   const groups = new Map<string, TimelineGroup>()
 
   for (const item of items) {
-    const key = item.date.slice(0, 10)
+    const key = item.log_date.slice(0, 10)
     const group = groups.get(key)
 
     if (group) {
-      group.ids.push(item.id)
+      group.items.push(item)
       continue
     }
 
     groups.set(key, {
       key,
       label: formatTimelineDate(key),
-      ids: [item.id],
+      items: [item],
     })
   }
 

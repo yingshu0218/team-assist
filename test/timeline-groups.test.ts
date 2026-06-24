@@ -5,12 +5,34 @@ import { groupFishboneTimeline } from '../src/lib/timeline-groups'
 
 test('groups fishbone timeline entries by literal date', () => {
   const groups = groupFishboneTimeline([
-    { id: 1, date: '2026-06-04T08:00:00.000Z' },
-    { id: 2, date: '2026-06-04T16:00:00.000Z' },
-    { id: 3, date: '2026-06-10T08:00:00.000Z' },
+    {
+      id: 1,
+      contact_id: 101,
+      contact_name: 'Ada',
+      content: 'First contact',
+      log_date: '2026-06-04T08:00:00.000Z',
+    },
+    {
+      id: 2,
+      contact_id: 102,
+      contact_name: 'Linus',
+      content: 'Second contact',
+      log_date: '2026-06-04T16:00:00.000Z',
+    },
+    {
+      id: 3,
+      contact_id: 103,
+      contact_name: 'Grace',
+      content: 'Third contact',
+      log_date: '2026-06-10T08:00:00.000Z',
+    },
   ], 'month')
 
-  assert.deepEqual(groups, [
+  assert.deepEqual(groups.map(({ key, label, items }) => ({
+    key,
+    label,
+    ids: items.map((item) => item.id),
+  })), [
     { key: '2026-06-04', label: '06.04', ids: [1, 2] },
     { key: '2026-06-10', label: '06.10', ids: [3] },
   ])
