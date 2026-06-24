@@ -15,7 +15,7 @@ test('groups fishbone timeline entries by literal date', () => {
     {
       id: 2,
       contact_id: 102,
-      contact_name: 'Linus',
+      contact_name: null,
       content: 'Second contact',
       log_date: '2026-06-04T16:00:00.000Z',
     },

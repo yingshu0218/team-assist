@@ -1,7 +1,7 @@
 export interface TimelineEntry {
   id: number
   contact_id: number
-  contact_name: string
+  contact_name: string | null
   content: string
   log_date: string
 }
