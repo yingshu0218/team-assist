@@ -17,9 +17,10 @@ import { CrmGroupsView } from "@/components/crm/crm-groups-view";
 import { CrmEventsView } from "@/components/crm/crm-events-view";
 import { CrmRelationshipsView } from "@/components/crm/crm-relationships-view";
 import { CrmGraphView } from "@/components/crm/crm-graph-view";
+import { CrmTimelineView } from "@/components/crm/crm-timeline-view";
 import { LedgerLoading } from "@/components/ledger-loading";
 
-export type Tab = "dashboard" | "transactions" | "categories" | "tags" | "settings" | "auth-settings" | "crm-contacts" | "crm-groups" | "crm-events" | "crm-relationships" | "crm-graph";
+export type Tab = "dashboard" | "transactions" | "categories" | "tags" | "settings" | "auth-settings" | "crm-contacts" | "crm-groups" | "crm-events" | "crm-relationships" | "crm-graph" | "crm-timeline";
 
 function AppContent() {
   const { token } = useAuth();
@@ -43,6 +44,7 @@ function AppContent() {
               {activeTab === "crm-events" && <CrmEventsView />}
               {activeTab === "crm-relationships" && <CrmRelationshipsView />}
               {activeTab === "crm-graph" && <CrmGraphView />}
+              {activeTab === "crm-timeline" && <CrmTimelineView />}
             </LedgerLoading>
           </SidebarInset>
         </SidebarProvider>
