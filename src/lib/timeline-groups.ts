@@ -6,7 +6,7 @@ export interface TimelineEntry {
   log_date: string
 }
 
-export type FishbonePeriod = 'month'
+export type FishbonePeriod = 'month' | 'year'
 
 export interface TimelineGroup {
   key: string
@@ -20,12 +20,14 @@ export function formatTimelineDate(date: string): string {
 
 export function groupFishboneTimeline(
   items: TimelineEntry[],
-  _period: FishbonePeriod,
+  period: FishbonePeriod,
 ): TimelineGroup[] {
   const groups = new Map<string, TimelineGroup>()
 
   for (const item of items) {
-    const key = item.log_date.slice(0, 10)
+    const key = period === 'month'
+      ? item.log_date.slice(0, 10)
+      : item.log_date.slice(0, 7)
     const group = groups.get(key)
 
     if (group) {
@@ -35,7 +37,9 @@ export function groupFishboneTimeline(
 
     groups.set(key, {
       key,
-      label: formatTimelineDate(key),
+      label: period === 'month'
+        ? formatTimelineDate(key)
+        : `${Number(key.slice(5, 7))} 月`,
       items: [item],
     })
   }
