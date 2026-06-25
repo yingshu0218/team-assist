@@ -11,6 +11,14 @@ type TeamPayload = {
   sort_order?: unknown;
 };
 
+type TeamUpdates = {
+  name?: string;
+  color?: string | null;
+  description?: string | null;
+  sort_order?: number;
+  updated_at: string;
+};
+
 function parseTeamId(value: string): number | null {
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
@@ -101,30 +109,32 @@ export async function PUT(
       return NextResponse.json({ success: false, error: "无效团队 ID" }, { status: 400 });
     }
 
-    const body = (await request.json()) as TeamPayload;
-    const name = normalizeString(body.name);
-    if (!name) {
-      return NextResponse.json(
-        { success: false, error: "团队名称不能为空" },
-        { status: 400 },
-      );
-    }
-
     const existing = await findTeam(id);
     if (!existing) {
       return NextResponse.json({ success: false, error: "团队不存在" }, { status: 404 });
     }
 
+    const body = (await request.json()) as TeamPayload;
+    const updates: TeamUpdates = { updated_at: new Date().toISOString() };
+
+    if (body.name !== undefined) {
+      const name = normalizeString(body.name);
+      if (!name) {
+        return NextResponse.json(
+          { success: false, error: "团队名称不能为空" },
+          { status: 400 },
+        );
+      }
+      updates.name = name;
+    }
+    if (body.color !== undefined) updates.color = normalizeString(body.color);
+    if (body.description !== undefined) updates.description = normalizeString(body.description);
+    if (body.sort_order !== undefined) updates.sort_order = normalizeSortOrder(body.sort_order);
+
     const db = getDb();
     const result = await db
       .update(teams)
-      .set({
-        name,
-        color: normalizeString(body.color),
-        description: normalizeString(body.description),
-        sort_order: normalizeSortOrder(body.sort_order),
-        updated_at: new Date().toISOString(),
-      })
+      .set(updates)
       .where(eq(teams.id, id))
       .returning();
 
