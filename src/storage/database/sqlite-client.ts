@@ -112,7 +112,11 @@ export function initDatabase(): void {
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+  `);
 
+  addLedgerTeamColumn(sqlite);
+
+  sqlite.exec(`
     CREATE TABLE IF NOT EXISTS category_groups (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       ledger_id INTEGER NOT NULL REFERENCES ledgers(id) ON DELETE CASCADE,
@@ -296,7 +300,6 @@ export function initDatabase(): void {
     CREATE INDEX IF NOT EXISTS crm_relationships_target_idx ON crm_relationships(target_type, target_id);
   `);
 
-  addLedgerTeamColumn(sqlite);
   migrateContactsToGlobal(sqlite);
   addContactRegionColumn(sqlite);
 

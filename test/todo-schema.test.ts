@@ -5,9 +5,13 @@ import { join } from "node:path";
 import { test } from "node:test";
 import Database from "better-sqlite3";
 
-test("todo schema supports nullable team and ledger relationships", () => {
+function makeTempDbPath(): { dir: string; dbPath: string } {
   const dir = mkdtempSync(join(tmpdir(), "todo-schema-"));
-  const dbPath = join(dir, "test.db");
+  return { dir, dbPath: join(dir, "test.db") };
+}
+
+test("todo schema supports nullable team and ledger relationships", () => {
+  const { dir, dbPath } = makeTempDbPath();
   const sqlite = new Database(dbPath);
 
   try {
@@ -80,6 +84,66 @@ test("todo schema supports nullable team and ledger relationships", () => {
     assert.equal(checklistCount.count, 0);
   } finally {
     sqlite.close();
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("initDatabase migrates legacy ledgers before creating team indexes", async () => {
+  const { dir, dbPath } = makeTempDbPath();
+  const sqlite = new Database(dbPath);
+  const previousSqliteDbPath = process.env.SQLITE_DB_PATH;
+  const globalObject = globalThis as unknown as Record<string, unknown>;
+  const previousWindow = globalObject.window;
+
+  try {
+    sqlite.exec(`
+      CREATE TABLE ledgers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        currency TEXT NOT NULL DEFAULT 'CNY',
+        initial_balance TEXT NOT NULL DEFAULT '0',
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+    sqlite.close();
+
+    process.env.SQLITE_DB_PATH = dbPath;
+    globalObject.window = {};
+
+    const sqliteClient = await import(`../src/storage/database/sqlite-client.ts?legacy-ledgers=${Date.now()}`);
+    sqliteClient.initDatabase();
+
+    const migrated = new Database(dbPath);
+    try {
+      const columns = migrated.prepare("PRAGMA table_info(ledgers)").all() as Array<{ name: string }>;
+      const indexes = migrated.prepare("PRAGMA index_list(ledgers)").all() as Array<{ name: string }>;
+
+      assert.equal(
+        columns.some((column) => column.name === "team_id"),
+        true,
+      );
+      assert.equal(
+        indexes.some((index) => index.name === "ledgers_team_id_idx"),
+        true,
+      );
+    } finally {
+      migrated.close();
+    }
+  } finally {
+    if (sqlite.open) sqlite.close();
+    if (previousSqliteDbPath === undefined) {
+      delete process.env.SQLITE_DB_PATH;
+    } else {
+      process.env.SQLITE_DB_PATH = previousSqliteDbPath;
+    }
+    if (previousWindow === undefined) {
+      delete globalObject.window;
+    } else {
+      globalObject.window = previousWindow;
+    }
     rmSync(dir, { recursive: true, force: true });
   }
 });
