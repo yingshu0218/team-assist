@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-团队管理助手 — 支持多账本管理、收支记录、分类标签、客户关系管理（CRM）、数据统计与可视化的全栈 Web 应用，同时集成 CRM 子系统（联系人管理、分组、事件/项目、关联关系网络、图谱可视化），并提供 CLI 命令行工具和 Token 鉴权。概览按当前选中账本独立展示，支持亮色/暗色主题和 Git 数据备份。系统需管理员登录后方可使用，外部 Agent 可通过 Token 凭证调用 CLI 或 API。
+团队管理助手 — 支持多账本管理、收支记录、分类标签、待办事项工作台、客户关系管理（CRM）、数据统计与可视化的全栈 Web 应用，同时集成 CRM 子系统（联系人管理、分组、事件/项目、关联关系网络、图谱可视化），并提供 CLI 命令行工具和 Token 鉴权。概览按当前选中账本独立展示，待办事项支持团队/分组、未分组、可选账本关联、checklist、状态/优先级/到期日和进度统计；系统支持亮色/暗色主题和 Git 数据备份。系统需管理员登录后方可使用，外部 Agent 可通过 Token 凭证调用 CLI 或 API。
 
 ### 版本技术栈
 
@@ -28,7 +28,7 @@
 │   └── cli.ts              # CLI 命令行工具入口
 ├── src/
 │   ├── app/
-│   │   ├── api/            # API 路由 (ledgers, transactions, categories, category-groups, tags, stats, sync, crm/*, auth/*)
+│   │   ├── api/            # API 路由 (ledgers, transactions, categories, category-groups, tags, stats, teams, todos, sync, crm/*, auth/*)
 │   │   ├── globals.css     # 全局样式
 │   │   ├── layout.tsx      # 根布局
 │   │   └── page.tsx        # 主页面 (含 tab 切换 + 认证门控)
@@ -41,6 +41,7 @@
 │   │   ├── transactions-view.tsx    # 收支明细页
 │   │   ├── categories-view.tsx      # 分类管理页
 │   │   ├── tags-view.tsx            # 标签管理页
+│   │   ├── todos/                   # 待办事项工作台组件
 │   │   ├── transaction-dialog.tsx   # 交易录入/编辑弹窗
 │   │   ├── stat-cards.tsx           # 统计卡片组件
 │   │   ├── overview-charts.tsx      # 图表可视化组件
@@ -85,6 +86,9 @@
 | `categories` | 分类 | id, ledger_id, group_id, name, type(income/expense), icon, color, sort_order |
 | `tags` | 标签 | id, ledger_id, name, color |
 | `transactions` | 交易记录 | id, ledger_id, category_id, amount, type, description, transaction_date, tag_ids |
+| `teams` | 团队/待办分组 | id, name, color, description, sort_order |
+| `todos` | 待办事项 | id, title, notes, status, priority, due_date, team_id, ledger_id, completed_at |
+| `todo_checklist_items` | 待办 checklist | id, todo_id, title, is_done, sort_order |
 | `crm_contacts` | CRM联系人 | id, ledger_id, name, phone, company, notes |
 | `crm_contact_logs` | CRM联系记录 | id, contact_id, content, log_date |
 | `crm_groups` | CRM分组 | id, ledger_id, name, color, description |
@@ -97,6 +101,9 @@
 
 - 创建账本时自动初始化默认分组和分类（按公司常用消费类别：日常办公/餐饮食品/交通出行/营销推广/人力福利/租赁物业/技术服务/其他支出 + 经营收入/财务收益/其他收入）
 - 删除分组时其下分类自动变为未分组（ON DELETE SET NULL）
+- 删除团队/分组时，账本和待办的 team_id 自动变为未分组（ON DELETE SET NULL）
+- 待办可选关联账本；删除账本时待办的 ledger_id 自动置空（ON DELETE SET NULL）
+- 删除待办时，其 checklist 子项级联删除（ON DELETE CASCADE）
 - CRM 表通过 ledger_id 关联账本，删除账本时级联删除所有 CRM 数据（ON DELETE CASCADE）
 - CRM 分组删除时级联清理成员关系（ON DELETE CASCADE）
 - CRM 联系人删除时级联清理联系记录、分组成员、事件参与者（ON DELETE CASCADE）
@@ -117,6 +124,12 @@
 | `/api/tags` | GET/POST | 标签列表/创建 |
 | `/api/tags/[id]` | PUT/DELETE | 标签编辑/删除 |
 | `/api/stats` | GET | 统计数据 (收入/支出/分类/趋势) |
+| `/api/teams` | GET/POST | 团队/待办分组列表(含账本数、待办数)/创建 |
+| `/api/teams/[id]` | GET/PUT/DELETE | 团队/待办分组详情/编辑/删除 |
+| `/api/todos` | GET/POST | 待办列表/创建(支持 team_id=none、ledger_id、status、due、search 筛选) |
+| `/api/todos/[id]` | GET/PUT/DELETE | 待办详情(含团队、账本、checklist、进度)/编辑/删除 |
+| `/api/todos/[id]/checklist` | POST | 添加待办 checklist 子项 |
+| `/api/todos/[id]/checklist/[itemId]` | PUT/DELETE | 更新/删除待办 checklist 子项 |
 | `/api/sync` | GET/POST | 数据导出(JSON,含CRM)/导入(merge或replace模式) |
 | `/api/sync/git` | GET/POST | Git备份状态查询/配置/推送/拉取 |
 | `/api/crm/contacts` | GET/POST | CRM联系人列表/创建(支持search关键词搜索、group_id分组过滤) |
@@ -175,6 +188,23 @@ npx tsx scripts/cli.ts tag delete <id>
 
 # 统计命令
 npx tsx scripts/cli.ts stats
+
+# 团队/待办工作台命令
+npx tsx scripts/cli.ts team list
+npx tsx scripts/cli.ts team add --name <n> [--color <c>] [--desc <d>]
+npx tsx scripts/cli.ts team update <id> [--name <n>] [--color <c>] [--desc <d>]
+npx tsx scripts/cli.ts team delete <id>
+npx tsx scripts/cli.ts todo list [--team <id|none>] [--ledger <id|none>] [--status <todo|doing|done|canceled>] [--search <keyword>]
+npx tsx scripts/cli.ts todo add --title <title> [--notes <notes>] [--team <id>] [--ledger <id>] [--due <YYYY-MM-DD>] [--priority <low|medium|high|urgent>]
+npx tsx scripts/cli.ts todo update <id> [--title <title>] [--notes <notes>] [--team <id|none>] [--ledger <id|none>] [--due <YYYY-MM-DD|none>] [--priority <priority>] [--status <status>]
+npx tsx scripts/cli.ts todo done <id>
+npx tsx scripts/cli.ts todo delete <id>
+
+# pnpm script 等价示例
+pnpm cli team list
+pnpm cli todo list
+pnpm cli todo add --title "整理本月营销支出凭证"
+pnpm cli todo done <id>
 
 # CRM 联系人命令
 npx tsx scripts/cli.ts contact list [--search <keyword>]
