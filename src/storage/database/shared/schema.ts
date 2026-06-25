@@ -1,6 +1,22 @@
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 import { sql } from "drizzle-orm";
 
+// ==================== 团队/分组表 ====================
+
+export const teams = sqliteTable(
+  "teams",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    color: text("color"),
+    description: text("description"),
+    sort_order: integer("sort_order").default(0).notNull(),
+    created_at: text("created_at").default(sql`(datetime('now'))`).notNull(),
+    updated_at: text("updated_at").default(sql`(datetime('now'))`).notNull(),
+  },
+  (table) => [index("teams_sort_order_idx").on(table.sort_order)],
+);
+
 // ==================== 账本表 ====================
 
 export const ledgers = sqliteTable(
@@ -9,13 +25,17 @@ export const ledgers = sqliteTable(
     id: integer("id").primaryKey({ autoIncrement: true }),
     name: text("name").notNull(),
     description: text("description"),
+    team_id: integer("team_id").references(() => teams.id, { onDelete: "set null" }),
     currency: text("currency").default("CNY").notNull(),
     initial_balance: text("initial_balance").default("0").notNull(),
     is_active: integer("is_active", { mode: "boolean" }).default(true).notNull(),
     created_at: text("created_at").default(sql`(datetime('now'))`).notNull(),
     updated_at: text("updated_at").default(sql`(datetime('now'))`).notNull(),
   },
-  (table) => [index("ledgers_is_active_idx").on(table.is_active)],
+  (table) => [
+    index("ledgers_is_active_idx").on(table.is_active),
+    index("ledgers_team_id_idx").on(table.team_id),
+  ],
 );
 
 // ==================== 分类分组表 ====================
@@ -91,6 +111,51 @@ export const transactions = sqliteTable(
     index("transactions_category_id_idx").on(table.category_id),
     index("transactions_type_idx").on(table.type),
     index("transactions_transaction_date_idx").on(table.transaction_date),
+  ],
+);
+
+// ==================== 待办事项表 ====================
+
+export const todos = sqliteTable(
+  "todos",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    title: text("title").notNull(),
+    notes: text("notes"),
+    status: text("status").default("todo").notNull(),
+    priority: text("priority").default("medium").notNull(),
+    due_date: text("due_date"),
+    team_id: integer("team_id").references(() => teams.id, { onDelete: "set null" }),
+    ledger_id: integer("ledger_id").references(() => ledgers.id, { onDelete: "set null" }),
+    sort_order: integer("sort_order").default(0).notNull(),
+    completed_at: text("completed_at"),
+    created_at: text("created_at").default(sql`(datetime('now'))`).notNull(),
+    updated_at: text("updated_at").default(sql`(datetime('now'))`).notNull(),
+  },
+  (table) => [
+    index("todos_status_idx").on(table.status),
+    index("todos_due_date_idx").on(table.due_date),
+    index("todos_team_id_idx").on(table.team_id),
+    index("todos_ledger_id_idx").on(table.ledger_id),
+  ],
+);
+
+// ==================== 待办清单项表 ====================
+
+export const todo_checklist_items = sqliteTable(
+  "todo_checklist_items",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    todo_id: integer("todo_id").notNull().references(() => todos.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    is_done: integer("is_done", { mode: "boolean" }).default(false).notNull(),
+    sort_order: integer("sort_order").default(0).notNull(),
+    created_at: text("created_at").default(sql`(datetime('now'))`).notNull(),
+    updated_at: text("updated_at").default(sql`(datetime('now'))`).notNull(),
+  },
+  (table) => [
+    index("todo_checklist_items_todo_id_idx").on(table.todo_id),
+    index("todo_checklist_items_sort_order_idx").on(table.sort_order),
   ],
 );
 

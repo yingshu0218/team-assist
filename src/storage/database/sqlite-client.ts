@@ -53,6 +53,13 @@ function addContactRegionColumn(sqlite: Database.Database): void {
   }
 }
 
+function addLedgerTeamColumn(sqlite: Database.Database): void {
+  const columns = sqlite.prepare("PRAGMA table_info(ledgers)").all() as Array<{ name: string }>;
+  if (!columns.some((column) => column.name === "team_id")) {
+    sqlite.exec("ALTER TABLE ledgers ADD COLUMN team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL");
+  }
+}
+
 export function getDb() {
   if (_db) return _db;
 
@@ -84,10 +91,21 @@ export function initDatabase(): void {
   sqlite.pragma("foreign_keys = ON");
 
   sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS teams (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      color TEXT,
+      description TEXT,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
     CREATE TABLE IF NOT EXISTS ledgers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       description TEXT,
+      team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL,
       currency TEXT NOT NULL DEFAULT 'CNY',
       initial_balance TEXT NOT NULL DEFAULT '0',
       is_active INTEGER NOT NULL DEFAULT 1,
@@ -134,6 +152,31 @@ export function initDatabase(): void {
       description TEXT,
       transaction_date TEXT NOT NULL DEFAULT (datetime('now')),
       tag_ids TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS todos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      notes TEXT,
+      status TEXT NOT NULL DEFAULT 'todo',
+      priority TEXT NOT NULL DEFAULT 'medium',
+      due_date TEXT,
+      team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL,
+      ledger_id INTEGER REFERENCES ledgers(id) ON DELETE SET NULL,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      completed_at TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS todo_checklist_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      todo_id INTEGER NOT NULL REFERENCES todos(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      is_done INTEGER NOT NULL DEFAULT 0,
+      sort_order INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL DEFAULT (datetime('now')),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -221,7 +264,9 @@ export function initDatabase(): void {
     );
 
     -- Indexes
+    CREATE INDEX IF NOT EXISTS teams_sort_order_idx ON teams(sort_order);
     CREATE INDEX IF NOT EXISTS ledgers_is_active_idx ON ledgers(is_active);
+    CREATE INDEX IF NOT EXISTS ledgers_team_id_idx ON ledgers(team_id);
     CREATE INDEX IF NOT EXISTS category_groups_ledger_id_idx ON category_groups(ledger_id);
     CREATE INDEX IF NOT EXISTS categories_ledger_id_idx ON categories(ledger_id);
     CREATE INDEX IF NOT EXISTS categories_type_idx ON categories(type);
@@ -231,6 +276,12 @@ export function initDatabase(): void {
     CREATE INDEX IF NOT EXISTS transactions_category_id_idx ON transactions(category_id);
     CREATE INDEX IF NOT EXISTS transactions_type_idx ON transactions(type);
     CREATE INDEX IF NOT EXISTS transactions_transaction_date_idx ON transactions(transaction_date);
+    CREATE INDEX IF NOT EXISTS todos_status_idx ON todos(status);
+    CREATE INDEX IF NOT EXISTS todos_due_date_idx ON todos(due_date);
+    CREATE INDEX IF NOT EXISTS todos_team_id_idx ON todos(team_id);
+    CREATE INDEX IF NOT EXISTS todos_ledger_id_idx ON todos(ledger_id);
+    CREATE INDEX IF NOT EXISTS todo_checklist_items_todo_id_idx ON todo_checklist_items(todo_id);
+    CREATE INDEX IF NOT EXISTS todo_checklist_items_sort_order_idx ON todo_checklist_items(sort_order);
     CREATE INDEX IF NOT EXISTS crm_contacts_name_idx ON crm_contacts(name);
     CREATE INDEX IF NOT EXISTS crm_contact_logs_contact_id_idx ON crm_contact_logs(contact_id);
     CREATE INDEX IF NOT EXISTS crm_groups_ledger_id_idx ON crm_groups(ledger_id);
@@ -245,6 +296,7 @@ export function initDatabase(): void {
     CREATE INDEX IF NOT EXISTS crm_relationships_target_idx ON crm_relationships(target_type, target_id);
   `);
 
+  addLedgerTeamColumn(sqlite);
   migrateContactsToGlobal(sqlite);
   addContactRegionColumn(sqlite);
 
