@@ -4,6 +4,7 @@ export type TransactionType = "income" | "expense";
 
 export interface Ledger {
   id: number;
+  team_id: number | null;
   name: string;
   description: string | null;
   currency: string;
@@ -85,6 +86,59 @@ export interface StatsResponse {
     income: number;
     expense: number;
   }[];
+}
+
+export type TodoStatus = "todo" | "doing" | "done" | "canceled";
+export type TodoPriority = "low" | "medium" | "high" | "urgent";
+export type TodoDateBucket = "overdue" | "today" | "future" | "no_date" | "done";
+
+export interface Team {
+  id: number;
+  name: string;
+  color: string | null;
+  description: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+  ledgerCount?: number;
+  todoCount?: number;
+}
+
+export interface TodoChecklistItem {
+  id: number;
+  todo_id: number;
+  title: string;
+  is_done: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Todo {
+  id: number;
+  title: string;
+  notes: string | null;
+  status: TodoStatus;
+  priority: TodoPriority;
+  due_date: string | null;
+  team_id: number | null;
+  ledger_id: number | null;
+  sort_order: number;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  team?: Team | null;
+  ledger?: Ledger | null;
+  checklist?: TodoChecklistItem[];
+  checklistProgress?: number;
+}
+
+export interface TodoStats {
+  today: number;
+  doing: number;
+  done: number;
+  overdue: number;
+  completionRate: number;
 }
 
 // ==================== CRM 类型 ====================
