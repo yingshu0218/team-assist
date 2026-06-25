@@ -1,22 +1,31 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { test } from "node:test";
 
-const cliConfigPath = resolve(process.cwd(), ".cli-config.json");
+const repoRoot = process.cwd();
 
-function runCli(args: string[]) {
-  const loader = process.env.TSX_LOADER || "tsx";
-  return spawnSync(
+interface CliRunResult {
+  stdout: string;
+  stderr: string;
+  configWritten: boolean;
+}
+
+function runCli(args: string[]): CliRunResult {
+  const loader = process.env.TSX_LOADER || resolve(repoRoot, "node_modules/tsx/dist/loader.mjs");
+  const tempDir = mkdtempSync(join(tmpdir(), "team-assist-cli-test-"));
+  const result = spawnSync(
     process.execPath,
     [
       "--import",
       loader,
-      resolve(process.cwd(), "scripts/cli.ts"),
+      resolve(repoRoot, "scripts/cli.ts"),
       ...args,
     ],
     {
+      cwd: tempDir,
       encoding: "utf8",
       env: {
         ...process.env,
@@ -24,6 +33,13 @@ function runCli(args: string[]) {
       },
     },
   );
+  const configWritten = existsSync(resolve(tempDir, ".cli-config.json"));
+  rmSync(tempDir, { recursive: true, force: true });
+  return {
+    stdout: result.stdout,
+    stderr: result.stderr,
+    configWritten,
+  };
 }
 
 test("ledger update is recognized as a CLI command", () => {
@@ -31,7 +47,7 @@ test("ledger update is recognized as a CLI command", () => {
   const output = `${result.stdout}${result.stderr}`;
   assert.equal(output.includes("未知子命令: ledger update"), false, output);
   assert.match(output, /请求失败/);
-  assert.equal(existsSync(cliConfigPath), false, ".cli-config.json should not be written by CLI tests");
+  assert.equal(result.configWritten, false, ".cli-config.json should not be written by CLI tests");
 });
 
 test("team add is recognized as a CLI command", () => {
@@ -39,7 +55,7 @@ test("team add is recognized as a CLI command", () => {
   const output = `${result.stdout}${result.stderr}`;
   assert.equal(output.includes("未知子命令: team add"), false, output);
   assert.match(output, /请求失败/);
-  assert.equal(existsSync(cliConfigPath), false, ".cli-config.json should not be written by CLI tests");
+  assert.equal(result.configWritten, false, ".cli-config.json should not be written by CLI tests");
 });
 
 test("todo add is recognized as a CLI command", () => {
@@ -47,7 +63,7 @@ test("todo add is recognized as a CLI command", () => {
   const output = `${result.stdout}${result.stderr}`;
   assert.equal(output.includes("未知子命令: todo add"), false, output);
   assert.match(output, /请求失败/);
-  assert.equal(existsSync(cliConfigPath), false, ".cli-config.json should not be written by CLI tests");
+  assert.equal(result.configWritten, false, ".cli-config.json should not be written by CLI tests");
 });
 
 test("todo add rejects malformed team IDs before making a request", () => {
@@ -55,7 +71,7 @@ test("todo add rejects malformed team IDs before making a request", () => {
   const output = `${result.stdout}${result.stderr}`;
   assert.match(output, /team 必须是正整数或 none/);
   assert.equal(output.includes("请求失败"), false, output);
-  assert.equal(existsSync(cliConfigPath), false, ".cli-config.json should not be written by CLI tests");
+  assert.equal(result.configWritten, false, ".cli-config.json should not be written by CLI tests");
 });
 
 test("todo done rejects malformed positional IDs before making a request", () => {
@@ -63,7 +79,7 @@ test("todo done rejects malformed positional IDs before making a request", () =>
   const output = `${result.stdout}${result.stderr}`;
   assert.match(output, /id 必须是正整数/);
   assert.equal(output.includes("请求失败"), false, output);
-  assert.equal(existsSync(cliConfigPath), false, ".cli-config.json should not be written by CLI tests");
+  assert.equal(result.configWritten, false, ".cli-config.json should not be written by CLI tests");
 });
 
 test("todo list rejects malformed team query IDs before making a request", () => {
@@ -71,5 +87,5 @@ test("todo list rejects malformed team query IDs before making a request", () =>
   const output = `${result.stdout}${result.stderr}`;
   assert.match(output, /team 必须是正整数或 none/);
   assert.equal(output.includes("请求失败"), false, output);
-  assert.equal(existsSync(cliConfigPath), false, ".cli-config.json should not be written by CLI tests");
+  assert.equal(result.configWritten, false, ".cli-config.json should not be written by CLI tests");
 });
