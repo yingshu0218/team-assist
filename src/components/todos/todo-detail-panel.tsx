@@ -88,6 +88,21 @@ export function TodoDetailPanel({
     setNewChecklistTitle("");
   }, [todo]);
 
+  if (!todo && loading) {
+    return (
+      <Card className="min-h-[520px]">
+        <CardHeader>
+          <CardTitle className="text-base">任务详情</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="h-10 animate-pulse rounded bg-muted" />
+          ))}
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (!todo) {
     return (
       <Card className="min-h-[520px]">

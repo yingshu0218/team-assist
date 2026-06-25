@@ -91,11 +91,15 @@ export function TodoList({
                     const isSelected = todo.id === selectedTodoId;
                     const progress = todo.checklistProgress ?? (todo.status === "done" ? 100 : 0);
 
+                    const handleSelectKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      onSelect(todo);
+                    };
+
                     return (
-                      <button
+                      <div
                         key={todo.id}
-                        type="button"
-                        onClick={() => onSelect(todo)}
                         className={cn(
                           "w-full rounded-lg border bg-card p-3 text-left transition-colors hover:bg-accent/50",
                           isSelected && "border-primary bg-accent",
@@ -108,7 +112,14 @@ export function TodoList({
                             onCheckedChange={() => onToggleDone(todo)}
                             aria-label={`切换 ${todo.title} 完成状态`}
                           />
-                          <div className="min-w-0 flex-1">
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => onSelect(todo)}
+                            onKeyDown={handleSelectKeyDown}
+                            className="min-w-0 flex-1 cursor-pointer rounded-sm outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                            aria-pressed={isSelected}
+                          >
                             <div className="flex flex-wrap items-center gap-2">
                               <span
                                 className={cn(
@@ -139,7 +150,7 @@ export function TodoList({
                             )}
                           </div>
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>

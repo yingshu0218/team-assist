@@ -59,6 +59,8 @@ export function TodosView() {
   const selectedTeam = typeof selectedFilter === "number"
     ? teamList.find((team) => team.id === selectedFilter) ?? null
     : null;
+  const detailTodo = selectedTodo?.id === selectedTodoId ? selectedTodo : null;
+  const detailLoading = selectedTodoId !== null && (selectedTodoLoading || !detailTodo || ledgersLoading);
 
   useEffect(() => {
     if (todoList.length === 0) {
@@ -110,7 +112,18 @@ export function TodosView() {
     await handleSaveTodo(todo.id, { status: todo.status === "done" ? "todo" : "done" });
   };
 
+  const handleSaveSelectedTodo = async (todoId: number, payload: TodoMutationPayload) => {
+    if (todoId !== selectedTodoId) return;
+    await handleSaveTodo(todoId, payload);
+  };
+
+  const handleDeleteSelectedTodo = async (todo: Todo) => {
+    if (todo.id !== selectedTodoId) return;
+    await handleDeleteTodo(todo);
+  };
+
   const handleAddChecklistItem = async (todoId: number, title: string) => {
+    if (todoId !== selectedTodoId) return;
     const result = await apiPost<TodoChecklistItem>(`/api/todos/${todoId}/checklist`, { title });
     if (!result.success) {
       alert(result.error ?? "添加清单项失败");
@@ -120,6 +133,7 @@ export function TodosView() {
   };
 
   const handleToggleChecklistItem = async (todoId: number, item: TodoChecklistItem) => {
+    if (todoId !== selectedTodoId) return;
     const result = await apiPut<TodoChecklistItem>(
       `/api/todos/${todoId}/checklist/${item.id}`,
       { is_done: !item.is_done },
@@ -132,6 +146,7 @@ export function TodosView() {
   };
 
   const handleDeleteChecklistItem = async (todoId: number, itemId: number) => {
+    if (todoId !== selectedTodoId) return;
     const result = await apiDelete(`/api/todos/${todoId}/checklist/${itemId}`);
     if (!result.success) {
       alert(result.error ?? "删除清单项失败");
@@ -234,12 +249,12 @@ export function TodosView() {
             onToggleDone={handleToggleDone}
           />
           <TodoDetailPanel
-            todo={selectedTodo ?? null}
+            todo={detailTodo}
             teams={teamList}
             ledgers={ledgerList}
-            loading={selectedTodoLoading || ledgersLoading}
-            onSave={handleSaveTodo}
-            onDelete={handleDeleteTodo}
+            loading={detailLoading}
+            onSave={handleSaveSelectedTodo}
+            onDelete={handleDeleteSelectedTodo}
             onAddChecklistItem={handleAddChecklistItem}
             onToggleChecklistItem={handleToggleChecklistItem}
             onDeleteChecklistItem={handleDeleteChecklistItem}
