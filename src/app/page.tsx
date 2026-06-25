@@ -12,6 +12,7 @@ import { CategoriesView } from "@/components/categories-view";
 import { TagsView } from "@/components/tags-view";
 import { SyncSettingsView } from "@/components/sync-settings-view";
 import { AuthSettingsView } from "@/components/auth-settings-view";
+import { TodosView } from "@/components/todos/todos-view";
 import { CrmContactsView } from "@/components/crm/crm-contacts-view";
 import { CrmGroupsView } from "@/components/crm/crm-groups-view";
 import { CrmEventsView } from "@/components/crm/crm-events-view";
@@ -20,7 +21,7 @@ import { CrmGraphView } from "@/components/crm/crm-graph-view";
 import { CrmTimelineView } from "@/components/crm/crm-timeline-view";
 import { LedgerLoading } from "@/components/ledger-loading";
 
-export type Tab = "dashboard" | "transactions" | "categories" | "tags" | "settings" | "auth-settings" | "crm-contacts" | "crm-groups" | "crm-events" | "crm-relationships" | "crm-graph" | "crm-timeline";
+export type Tab = "dashboard" | "transactions" | "categories" | "tags" | "todos" | "settings" | "auth-settings" | "crm-contacts" | "crm-groups" | "crm-events" | "crm-relationships" | "crm-graph" | "crm-timeline";
 
 function AppContent() {
   const { token } = useAuth();
@@ -37,6 +38,7 @@ function AppContent() {
               {activeTab === "transactions" && <TransactionsView />}
               {activeTab === "categories" && <CategoriesView />}
               {activeTab === "tags" && <TagsView />}
+              {activeTab === "todos" && <TodosView />}
               {activeTab === "settings" && <SyncSettingsView />}
               {activeTab === "auth-settings" && <AuthSettingsView />}
               {activeTab === "crm-contacts" && <CrmContactsView />}

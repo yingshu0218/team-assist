@@ -19,6 +19,7 @@ import {
   Calendar,
   Link2,
   Network,
+  ListTodo,
 } from "lucide-react";
 import {
   Sidebar,
@@ -77,6 +78,7 @@ export function AppSidebar({ activeTab, onTabChange }: AppSidebarProps) {
     { id: "transactions" as Tab, label: "收支明细", icon: Receipt },
     { id: "categories" as Tab, label: "分类管理", icon: FolderTree },
     { id: "tags" as Tab, label: "标签管理", icon: Tags },
+    { id: "todos" as Tab, label: "待办事项", icon: ListTodo },
   ];
 
   const crmNavItems = [
