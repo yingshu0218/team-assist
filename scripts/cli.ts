@@ -177,9 +177,16 @@ function parseCliId(value: string | undefined, usage: string): number {
   return id;
 }
 
-function setOptionalId(body: Record<string, unknown>, field: string, value: string | undefined): void {
+function setOptionalId(body: Record<string, unknown>, field: string, value: string | undefined, flagName: string): void {
   if (value === undefined) return;
-  body[field] = value === "none" ? null : parseInt(value, 10);
+  if (value === "none") {
+    body[field] = null;
+    return;
+  }
+  if (!/^[1-9]\d*$/.test(value)) {
+    throw new Error(`${flagName} 必须是正整数或 none`);
+  }
+  body[field] = parseInt(value, 10);
 }
 
 // 颜色输出
@@ -725,8 +732,8 @@ async function todoAdd(args: string[]) {
 
   const body: Record<string, unknown> = { title: opts.title };
   if (opts.notes !== undefined) body.notes = opts.notes;
-  setOptionalId(body, "team_id", opts.team);
-  setOptionalId(body, "ledger_id", opts.ledger);
+  setOptionalId(body, "team_id", opts.team, "team");
+  setOptionalId(body, "ledger_id", opts.ledger, "ledger");
   if (opts.due !== undefined) body.due_date = opts.due;
   if (opts.priority !== undefined) body.priority = opts.priority;
 
@@ -741,8 +748,8 @@ async function todoUpdate(args: string[]) {
   const body: Record<string, unknown> = {};
   if (opts.title !== undefined) body.title = opts.title;
   if (opts.notes !== undefined) body.notes = opts.notes;
-  setOptionalId(body, "team_id", opts.team);
-  setOptionalId(body, "ledger_id", opts.ledger);
+  setOptionalId(body, "team_id", opts.team, "team");
+  setOptionalId(body, "ledger_id", opts.ledger, "ledger");
   if (opts.due !== undefined) body.due_date = opts.due === "none" ? null : opts.due;
   if (opts.priority !== undefined) body.priority = opts.priority;
   if (opts.status !== undefined) body.status = opts.status;
