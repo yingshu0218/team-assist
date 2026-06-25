@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { and, asc, desc, eq, inArray, isNull, like, lt, SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, like, lt, ne, SQL } from "drizzle-orm";
 import { authenticateRequest, authFailResponse } from "@/lib/auth";
 import {
   computeChecklistProgress,
@@ -106,8 +106,12 @@ export async function GET(request: NextRequest) {
       conditions.push(isNull(todos.due_date));
     } else if (due === "today") {
       conditions.push(eq(todos.due_date, today));
+      conditions.push(ne(todos.status, "done"));
+      conditions.push(ne(todos.status, "canceled"));
     } else if (due === "overdue") {
       conditions.push(lt(todos.due_date, today));
+      conditions.push(ne(todos.status, "done"));
+      conditions.push(ne(todos.status, "canceled"));
     }
 
     const db = getDb();
