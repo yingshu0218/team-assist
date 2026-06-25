@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/storage/database/sqlite-client";
 import { ledgers } from "@/storage/database/shared/schema";
 import { authenticateRequest, authFailResponse } from "@/lib/auth";
+import { normalizeOptionalId } from "@/lib/todos";
 import { eq } from "drizzle-orm";
 
 // 获取单个账本
@@ -50,6 +51,14 @@ export async function PUT(
     if (body.currency !== undefined) updates.currency = body.currency;
     if (body.initial_balance !== undefined) updates.initial_balance = String(body.initial_balance);
     if (body.is_active !== undefined) updates.is_active = body.is_active;
+    if (body.team_id !== undefined) {
+      try {
+        updates.team_id = normalizeOptionalId(body.team_id) ?? null;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "ID 必须是正整数或 none";
+        return NextResponse.json({ success: false, error: msg }, { status: 400 });
+      }
+    }
 
     const db = getDb();
     const result = await db

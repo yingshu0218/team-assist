@@ -3,6 +3,7 @@ import { getDb } from "@/storage/database/sqlite-client";
 import { ledgers, category_groups, categories } from "@/storage/database/shared/schema";
 import { DEFAULT_EXPENSE_GROUPS, DEFAULT_INCOME_GROUPS } from "@/lib/constants";
 import { authenticateRequest, authFailResponse } from "@/lib/auth";
+import { normalizeOptionalId } from "@/lib/todos";
 import { asc } from "drizzle-orm";
 
 // 获取账本列表
@@ -32,6 +33,14 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { name, description, currency = "CNY", initial_balance = "0" } = body;
+    let teamId: number | null;
+
+    try {
+      teamId = normalizeOptionalId(body.team_id) ?? null;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "ID 必须是正整数或 none";
+      return NextResponse.json({ success: false, error: msg }, { status: 400 });
+    }
 
     if (!name?.trim()) {
       return NextResponse.json(
@@ -51,6 +60,7 @@ export async function POST(request: NextRequest) {
         currency,
         initial_balance: String(initial_balance),
         is_active: true,
+        team_id: teamId,
       })
       .returning();
 
