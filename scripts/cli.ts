@@ -31,6 +31,15 @@
  *   tag update <id> [--name <n>] [--color <c>]
  *   tag delete <id>
  *   stats                                    - 查看统计数据
+ *   team list
+ *   team add --name <n> [--color <c>] [--desc <d>]
+ *   team update <id> [--name <n>] [--color <c>] [--desc <d>]
+ *   team delete <id>
+ *   todo list [--team <id|none>] [--ledger <id>] [--status <status>] [--search <keyword>]
+ *   todo add --title <title> [--notes <notes>] [--team <id>] [--ledger <id>] [--due <YYYY-MM-DD>] [--priority <priority>]
+ *   todo update <id> [--title <title>] [--notes <notes>] [--team <id|none>] [--ledger <id|none>] [--due <YYYY-MM-DD|none>] [--priority <priority>] [--status <status>]
+ *   todo done <id>
+ *   todo delete <id>
  *   contact list [--search <keyword>] [--group <group_id>]
  *   contact add --name <n> [--phone <p>] [--company <c>] [--notes <n>]
  *   contact get <id>
@@ -157,6 +166,20 @@ function parseArgs(args: string[]): Record<string, string> {
     }
   }
   return result;
+}
+
+function parseCliId(value: string | undefined, usage: string): number {
+  const id = parseInt(value || "", 10);
+  if (!id) {
+    console.error(usage);
+    process.exit(1);
+  }
+  return id;
+}
+
+function setOptionalId(body: Record<string, unknown>, field: string, value: string | undefined): void {
+  if (value === undefined) return;
+  body[field] = value === "none" ? null : parseInt(value, 10);
 }
 
 // 颜色输出
@@ -601,6 +624,155 @@ async function statsCommand() {
   console.log();
 }
 
+// ==================== 团队命令 ====================
+
+async function teamList() {
+  const result = await apiFetch<{ id: number; name: string; color: string | null; description: string | null; ledgerCount?: number; todoCount?: number }[]>("/api/teams");
+  if (!result.success) { console.error("查询失败:", result.error); process.exit(1); }
+  const data = result.data || [];
+
+  console.log(c.bold("\n👥 团队列表\n"));
+  if (data.length === 0) {
+    console.log(c.dim("  暂无团队\n"));
+    return;
+  }
+
+  for (const team of data) {
+    console.log(`  ${c.bold(`[${team.id}]`)} ${team.name} ${team.color ? c.dim(team.color) : ""}`);
+    if (team.description) console.log(c.dim(`      ${team.description}`));
+    if (team.ledgerCount !== undefined || team.todoCount !== undefined) {
+      console.log(c.dim(`      账本 ${team.ledgerCount ?? 0} · 待办 ${team.todoCount ?? 0}`));
+    }
+  }
+  console.log(c.dim(`\n  共 ${data.length} 个团队\n`));
+}
+
+async function teamAdd(args: string[]) {
+  const opts = parseArgs(args);
+  if (!opts.name) { console.error("用法: team add --name <名称> [--color <颜色>] [--desc <描述>]"); process.exit(1); }
+
+  const result = await apiFetch("/api/teams", {
+    method: "POST",
+    body: JSON.stringify({ name: opts.name, color: opts.color || null, description: opts.desc || null }),
+  });
+  if (!result.success) { console.error("创建失败:", result.error); process.exit(1); }
+  console.log(c.green(`\n✓ 团队「${opts.name}」创建成功\n`));
+}
+
+async function teamUpdate(args: string[]) {
+  const id = parseCliId(args[0], "用法: team update <id> [--name <名称>] [--color <颜色>] [--desc <描述>]");
+  const opts = parseArgs(args.slice(1));
+  const body: Record<string, unknown> = {};
+  if (opts.name) body.name = opts.name;
+  if (opts.color !== undefined) body.color = opts.color;
+  if (opts.desc !== undefined) body.description = opts.desc;
+
+  if (Object.keys(body).length === 0) {
+    console.error("错误: 请至少提供一个要更新的字段");
+    process.exit(1);
+  }
+
+  const result = await apiFetch(`/api/teams/${id}`, { method: "PUT", body: JSON.stringify(body) });
+  if (!result.success) { console.error("更新失败:", result.error); process.exit(1); }
+  console.log(c.green(`\n✓ 团队 #${id} 更新成功\n`));
+}
+
+async function teamDelete(args: string[]) {
+  const id = parseCliId(args[0], "用法: team delete <id>");
+
+  const result = await apiFetch(`/api/teams/${id}`, { method: "DELETE" });
+  if (!result.success) { console.error("删除失败:", result.error); process.exit(1); }
+  console.log(c.green(`\n✓ 团队 #${id} 已删除\n`));
+}
+
+// ==================== 待办命令 ====================
+
+async function todoList(args: string[]) {
+  const opts = parseArgs(args);
+  const params = new URLSearchParams();
+  if (opts.team) params.set("team_id", opts.team);
+  if (opts.ledger) params.set("ledger_id", opts.ledger);
+  if (opts.status) params.set("status", opts.status);
+  if (opts.search) params.set("search", opts.search);
+  const query = params.toString();
+
+  const result = await apiFetch<{ id: number; title: string; status: string; priority: string; due_date: string | null; team?: { name: string } | null; ledger?: { name: string } | null }[]>(`/api/todos${query ? `?${query}` : ""}`);
+  if (!result.success) { console.error("查询失败:", result.error); process.exit(1); }
+  const data = result.data || [];
+
+  console.log(c.bold("\n✅ 待办列表\n"));
+  if (data.length === 0) {
+    console.log(c.dim("  暂无待办\n"));
+    return;
+  }
+
+  for (const todo of data) {
+    console.log(`  ${c.bold(`[${todo.id}]`)} ${todo.title}`);
+    console.log(c.dim(`      ${todo.status} · ${todo.priority}${todo.due_date ? ` · ${todo.due_date}` : ""}`));
+    if (todo.team?.name || todo.ledger?.name) {
+      console.log(c.dim(`      ${todo.team?.name ? `团队: ${todo.team.name}` : ""}${todo.team?.name && todo.ledger?.name ? " · " : ""}${todo.ledger?.name ? `账本: ${todo.ledger.name}` : ""}`));
+    }
+  }
+  console.log(c.dim(`\n  共 ${data.length} 条待办\n`));
+}
+
+async function todoAdd(args: string[]) {
+  const opts = parseArgs(args);
+  if (!opts.title) {
+    console.error("用法: todo add --title <标题> [--notes <备注>] [--team <团队ID>] [--ledger <账本ID>] [--due <YYYY-MM-DD>] [--priority <优先级>]");
+    process.exit(1);
+  }
+
+  const body: Record<string, unknown> = { title: opts.title };
+  if (opts.notes !== undefined) body.notes = opts.notes;
+  setOptionalId(body, "team_id", opts.team);
+  setOptionalId(body, "ledger_id", opts.ledger);
+  if (opts.due !== undefined) body.due_date = opts.due;
+  if (opts.priority !== undefined) body.priority = opts.priority;
+
+  const result = await apiFetch("/api/todos", { method: "POST", body: JSON.stringify(body) });
+  if (!result.success) { console.error("创建失败:", result.error); process.exit(1); }
+  console.log(c.green(`\n✓ 待办「${opts.title}」创建成功\n`));
+}
+
+async function todoUpdate(args: string[]) {
+  const id = parseCliId(args[0], "用法: todo update <id> [--title <标题>] [--notes <备注>] [--team <id|none>] [--ledger <id|none>] [--due <YYYY-MM-DD|none>] [--priority <优先级>] [--status <状态>]");
+  const opts = parseArgs(args.slice(1));
+  const body: Record<string, unknown> = {};
+  if (opts.title !== undefined) body.title = opts.title;
+  if (opts.notes !== undefined) body.notes = opts.notes;
+  setOptionalId(body, "team_id", opts.team);
+  setOptionalId(body, "ledger_id", opts.ledger);
+  if (opts.due !== undefined) body.due_date = opts.due === "none" ? null : opts.due;
+  if (opts.priority !== undefined) body.priority = opts.priority;
+  if (opts.status !== undefined) body.status = opts.status;
+
+  if (Object.keys(body).length === 0) {
+    console.error("错误: 请至少提供一个要更新的字段");
+    process.exit(1);
+  }
+
+  const result = await apiFetch(`/api/todos/${id}`, { method: "PUT", body: JSON.stringify(body) });
+  if (!result.success) { console.error("更新失败:", result.error); process.exit(1); }
+  console.log(c.green(`\n✓ 待办 #${id} 更新成功\n`));
+}
+
+async function todoDone(args: string[]) {
+  const id = parseCliId(args[0], "用法: todo done <id>");
+
+  const result = await apiFetch(`/api/todos/${id}`, { method: "PUT", body: JSON.stringify({ status: "done" }) });
+  if (!result.success) { console.error("更新失败:", result.error); process.exit(1); }
+  console.log(c.green(`\n✓ 待办 #${id} 已完成\n`));
+}
+
+async function todoDelete(args: string[]) {
+  const id = parseCliId(args[0], "用法: todo delete <id>");
+
+  const result = await apiFetch(`/api/todos/${id}`, { method: "DELETE" });
+  if (!result.success) { console.error("删除失败:", result.error); process.exit(1); }
+  console.log(c.green(`\n✓ 待办 #${id} 已删除\n`));
+}
+
 // ==================== CRM 联系人命令 ====================
 
 async function contactList(args: string[]) {
@@ -1008,6 +1180,8 @@ async function main() {
     console.log("  category-group list|add|update|delete  分组管理");
     console.log("  tag list|add|update|delete        标签管理");
     console.log("  stats                             统计概览");
+    console.log("  team list|add|update|delete       团队管理");
+    console.log("  todo list|add|update|done|delete  待办管理");
     console.log("  contact list|add|get|update|delete|log  CRM联系人");
     console.log("  group list|add|update|delete|add-member|remove-member  CRM分组");
     console.log("  event list|add|get|update|delete|add-participant|remove-participant  CRM事件");
@@ -1068,6 +1242,25 @@ async function main() {
         }
         break;
       case "stats": await statsCommand(); break;
+      case "team":
+        switch (subcommand) {
+          case "list": await teamList(); break;
+          case "add": await teamAdd(rest); break;
+          case "update": await teamUpdate(rest); break;
+          case "delete": await teamDelete(rest); break;
+          default: console.error(`未知子命令: team ${subcommand}`); process.exit(1);
+        }
+        break;
+      case "todo":
+        switch (subcommand) {
+          case "list": await todoList(rest); break;
+          case "add": await todoAdd(rest); break;
+          case "update": await todoUpdate(rest); break;
+          case "done": await todoDone(rest); break;
+          case "delete": await todoDelete(rest); break;
+          default: console.error(`未知子命令: todo ${subcommand}`); process.exit(1);
+        }
+        break;
       case "contact":
         switch (subcommand) {
           case "list": await contactList(rest); break;
