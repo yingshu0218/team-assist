@@ -64,6 +64,19 @@ function validStoredStatus(value: string): TodoStatus {
   return isTodoStatus(value) ? value : "todo";
 }
 
+function parseQueryOptionalId(value: string | null, fieldName: string): number | null | undefined {
+  if (value === null || value === "") return undefined;
+  if (value === "none") return null;
+  if (!/^[1-9]\d*$/.test(value)) {
+    throw new Error(`${fieldName} 必须是正整数或 none`);
+  }
+  const id = Number(value);
+  if (!Number.isSafeInteger(id)) {
+    throw new Error(`${fieldName} 必须是正整数或 none`);
+  }
+  return id;
+}
+
 // 获取待办列表
 export async function GET(request: NextRequest) {
   const auth = await authenticateRequest(request);
@@ -78,18 +91,19 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search");
     const due = searchParams.get("due");
 
-    if (teamId === "none") {
+    const parsedTeamId = parseQueryOptionalId(teamId, "team_id");
+    const parsedLedgerId = parseQueryOptionalId(ledgerId, "ledger_id");
+
+    if (parsedTeamId === null) {
       conditions.push(isNull(todos.team_id));
-    } else if (teamId) {
-      const parsedTeamId = normalizeOptionalId(teamId);
-      if (parsedTeamId !== null && parsedTeamId !== undefined) conditions.push(eq(todos.team_id, parsedTeamId));
+    } else if (parsedTeamId !== undefined) {
+      conditions.push(eq(todos.team_id, parsedTeamId));
     }
 
-    if (ledgerId === "none") {
+    if (parsedLedgerId === null) {
       conditions.push(isNull(todos.ledger_id));
-    } else if (ledgerId) {
-      const parsedLedgerId = normalizeOptionalId(ledgerId);
-      if (parsedLedgerId !== null && parsedLedgerId !== undefined) conditions.push(eq(todos.ledger_id, parsedLedgerId));
+    } else if (parsedLedgerId !== undefined) {
+      conditions.push(eq(todos.ledger_id, parsedLedgerId));
     }
 
     if (status && isTodoStatus(status)) {
@@ -165,7 +179,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "未知错误";
-    return NextResponse.json({ success: false, error: msg }, { status: 500 });
+    const statusCode = msg.includes("必须是正整数或 none") ? 400 : 500;
+    return NextResponse.json({ success: false, error: msg }, { status: statusCode });
   }
 }
 

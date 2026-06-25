@@ -169,24 +169,39 @@ function parseArgs(args: string[]): Record<string, string> {
 }
 
 function parseCliId(value: string | undefined, usage: string): number {
-  const id = parseInt(value || "", 10);
-  if (!id) {
+  if (value === undefined) {
     console.error(usage);
     process.exit(1);
+  }
+  if (!/^[1-9]\d*$/.test(value)) {
+    throw new Error("id 必须是正整数");
+  }
+  const id = Number(value);
+  if (!Number.isSafeInteger(id)) {
+    throw new Error("id 必须是正整数");
+  }
+  return id;
+}
+
+function parseOptionalCliId(value: string | undefined, flagName: string): number | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === "none") {
+    return null;
+  }
+  if (!/^[1-9]\d*$/.test(value)) {
+    throw new Error(`${flagName} 必须是正整数或 none`);
+  }
+  const id = Number(value);
+  if (!Number.isSafeInteger(id)) {
+    throw new Error(`${flagName} 必须是正整数或 none`);
   }
   return id;
 }
 
 function setOptionalId(body: Record<string, unknown>, field: string, value: string | undefined, flagName: string): void {
-  if (value === undefined) return;
-  if (value === "none") {
-    body[field] = null;
-    return;
-  }
-  if (!/^[1-9]\d*$/.test(value)) {
-    throw new Error(`${flagName} 必须是正整数或 none`);
-  }
-  body[field] = parseInt(value, 10);
+  const id = parseOptionalCliId(value, flagName);
+  if (id === undefined) return;
+  body[field] = id;
 }
 
 // 颜色输出
@@ -697,8 +712,10 @@ async function teamDelete(args: string[]) {
 async function todoList(args: string[]) {
   const opts = parseArgs(args);
   const params = new URLSearchParams();
-  if (opts.team) params.set("team_id", opts.team);
-  if (opts.ledger) params.set("ledger_id", opts.ledger);
+  const teamId = parseOptionalCliId(opts.team, "team");
+  const ledgerId = parseOptionalCliId(opts.ledger, "ledger");
+  if (teamId !== undefined) params.set("team_id", teamId === null ? "none" : String(teamId));
+  if (ledgerId !== undefined) params.set("ledger_id", ledgerId === null ? "none" : String(ledgerId));
   if (opts.status) params.set("status", opts.status);
   if (opts.search) params.set("search", opts.search);
   const query = params.toString();

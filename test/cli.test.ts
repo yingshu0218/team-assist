@@ -57,3 +57,19 @@ test("todo add rejects malformed team IDs before making a request", () => {
   assert.equal(output.includes("请求失败"), false, output);
   assert.equal(existsSync(cliConfigPath), false, ".cli-config.json should not be written by CLI tests");
 });
+
+test("todo done rejects malformed positional IDs before making a request", () => {
+  const result = runCli(["todo", "done", "1abc"]);
+  const output = `${result.stdout}${result.stderr}`;
+  assert.match(output, /id 必须是正整数/);
+  assert.equal(output.includes("请求失败"), false, output);
+  assert.equal(existsSync(cliConfigPath), false, ".cli-config.json should not be written by CLI tests");
+});
+
+test("todo list rejects malformed team query IDs before making a request", () => {
+  const result = runCli(["todo", "list", "--team", "abc"]);
+  const output = `${result.stdout}${result.stderr}`;
+  assert.match(output, /team 必须是正整数或 none/);
+  assert.equal(output.includes("请求失败"), false, output);
+  assert.equal(existsSync(cliConfigPath), false, ".cli-config.json should not be written by CLI tests");
+});
