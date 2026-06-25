@@ -21,6 +21,9 @@ export function isTodoPriority(value: unknown): value is TodoPriority {
 export function normalizeOptionalId(value: unknown): number | null | undefined {
   if (value === undefined) return undefined;
   if (value === null || value === "" || value === "none") return null;
+  if (typeof value !== "string" && typeof value !== "number") {
+    throw new Error("ID 必须是正整数或 none");
+  }
 
   const numeric = Number(value);
   if (!Number.isInteger(numeric) || numeric <= 0) {
@@ -34,6 +37,17 @@ export function normalizeDateOnly(value: unknown): string | null | undefined {
   if (value === undefined) return undefined;
   if (value === null || value === "" || value === "none") return null;
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error("日期必须为空或 YYYY-MM-DD");
+  }
+
+  const year = Number(value.slice(0, 4));
+  const month = Number(value.slice(5, 7));
+  const day = Number(value.slice(8, 10));
+  const date = new Date(Date.UTC(year, month - 1, day));
+  const isValidDate =
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+
+  if (!isValidDate) {
     throw new Error("日期必须为空或 YYYY-MM-DD");
   }
 

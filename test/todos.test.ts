@@ -4,6 +4,10 @@ import {
   computeChecklistProgress,
   computeTodoStats,
   getTodoDateBucket,
+  isTodoPriority,
+  isTodoStatus,
+  normalizeDateOnly,
+  normalizeOptionalId,
   normalizeTodoStatusTransition,
 } from "../src/lib/todos";
 import type { Todo } from "../src/lib/types";
@@ -74,4 +78,55 @@ test("status transition sets and clears completed_at", () => {
 
   const reopened = normalizeTodoStatusTransition("doing", "done", "2026-06-25 10:00:00", "2026-06-25 11:00:00");
   assert.equal(reopened.completed_at, null);
+});
+
+test("todo status and priority guards accept only known string values", () => {
+  assert.equal(isTodoStatus("todo"), true);
+  assert.equal(isTodoStatus("doing"), true);
+  assert.equal(isTodoStatus("done"), true);
+  assert.equal(isTodoStatus("canceled"), true);
+  assert.equal(isTodoStatus("archived"), false);
+  assert.equal(isTodoStatus(1), false);
+
+  assert.equal(isTodoPriority("low"), true);
+  assert.equal(isTodoPriority("medium"), true);
+  assert.equal(isTodoPriority("high"), true);
+  assert.equal(isTodoPriority("urgent"), true);
+  assert.equal(isTodoPriority("normal"), false);
+  assert.equal(isTodoPriority(null), false);
+});
+
+test("optional id normalization accepts empty values and positive integers", () => {
+  assert.equal(normalizeOptionalId(undefined), undefined);
+  assert.equal(normalizeOptionalId(null), null);
+  assert.equal(normalizeOptionalId(""), null);
+  assert.equal(normalizeOptionalId("none"), null);
+  assert.equal(normalizeOptionalId(12), 12);
+  assert.equal(normalizeOptionalId("34"), 34);
+});
+
+test("optional id normalization rejects malformed values", () => {
+  assert.throws(() => normalizeOptionalId(true), /ID 必须是正整数或 none/);
+  assert.throws(() => normalizeOptionalId(false), /ID 必须是正整数或 none/);
+  assert.throws(() => normalizeOptionalId([]), /ID 必须是正整数或 none/);
+  assert.throws(() => normalizeOptionalId({ id: 1 }), /ID 必须是正整数或 none/);
+  assert.throws(() => normalizeOptionalId(0), /ID 必须是正整数或 none/);
+  assert.throws(() => normalizeOptionalId("1.5"), /ID 必须是正整数或 none/);
+});
+
+test("date-only normalization accepts empty values and real dates", () => {
+  assert.equal(normalizeDateOnly(undefined), undefined);
+  assert.equal(normalizeDateOnly(null), null);
+  assert.equal(normalizeDateOnly(""), null);
+  assert.equal(normalizeDateOnly("none"), null);
+  assert.equal(normalizeDateOnly("2026-02-28"), "2026-02-28");
+  assert.equal(normalizeDateOnly("2024-02-29"), "2024-02-29");
+});
+
+test("date-only normalization rejects malformed and impossible dates", () => {
+  assert.throws(() => normalizeDateOnly("2026-2-28"), /日期必须为空或 YYYY-MM-DD/);
+  assert.throws(() => normalizeDateOnly("2026-02-31"), /日期必须为空或 YYYY-MM-DD/);
+  assert.throws(() => normalizeDateOnly("2026-13-01"), /日期必须为空或 YYYY-MM-DD/);
+  assert.throws(() => normalizeDateOnly("2026-00-10"), /日期必须为空或 YYYY-MM-DD/);
+  assert.throws(() => normalizeDateOnly(20260228), /日期必须为空或 YYYY-MM-DD/);
 });
