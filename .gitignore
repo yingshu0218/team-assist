@@ -3,6 +3,7 @@ node_modules/
 .pnpm-store/
 .next/
 dist/
+*.tsbuildinfo
 .worktrees/
 .superpowers/
 

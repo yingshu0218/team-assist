@@ -145,6 +145,7 @@ export interface TodoStats {
 
 export type CrmEventType = "event" | "project";
 export type CrmEntityType = "contact" | "event";
+export type GraphNodeType = CrmEntityType | "project";
 
 export interface CrmContact {
   id: number;
@@ -227,16 +228,19 @@ export interface CrmRelationship {
 // 图谱可视化节点
 export interface GraphNode {
   id: string;
-  type: CrmEntityType;
+  type: GraphNodeType;
   label: string;
+  sublabel?: string | null;
   color: string;
   borderColor: string;
 }
 
 // 图谱可视化边
+export type GraphEndpoint = string | { id?: string };
+
 export interface GraphLink {
-  source: string;
-  target: string;
+  source: GraphEndpoint;
+  target: GraphEndpoint;
   label: string | null;
   color: string;
 }

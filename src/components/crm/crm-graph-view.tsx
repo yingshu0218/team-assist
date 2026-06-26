@@ -8,26 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useLedger } from "@/hooks/use-ledger";
 import { useFetch } from "@/hooks/use-data";
 import { useTheme } from "next-themes";
+import type { GraphEndpoint, GraphLink, GraphNode } from "@/lib/types";
 
-interface GraphNode {
-  id: string;
-  type: "contact" | "event" | "project";
-  label: string;
-  sublabel?: string | null;
-  color: string;
-  borderColor: string;
-}
-
-interface GraphLink {
-  source: string;
-  target: string;
-  label: string | null;
-  color: string;
-}
 
 interface GraphData {
   nodes: GraphNode[];
   links: GraphLink[];
+}
+
+function endpointId(endpoint: GraphEndpoint): string | null {
+  return typeof endpoint === "string" ? endpoint : endpoint.id ?? null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -155,8 +145,8 @@ export function CrmGraphView() {
     if (node && graphData) {
       const gNode = graphData.nodes.find((n) => n.id === node.id);
       setHoverNode(gNode || null);
-      const related = graphData.links.filter(
-        (l) => l.source === node.id || l.target === node.id
+      const related = graphData.links.filter((link) =>
+        endpointId(link.source) === node.id || endpointId(link.target) === node.id
       );
       setHoverLinks(related);
     } else {
@@ -228,7 +218,7 @@ export function CrmGraphView() {
           <ForceGraphComp
             ref={fgRef}
             graphData={graphData}
-            nodePaint={nodePaint}
+            nodeCanvasObject={nodePaint}
             nodeVal={12}
             linkColor={() => isDark ? "#4a5568" : "#94a3b8"}
             linkWidth={1}
@@ -237,9 +227,10 @@ export function CrmGraphView() {
             linkCurvature={0.1}
             backgroundColor="transparent"
             onNodeHover={handleNodeHover}
-            nodePointerAreaPaint={(paintNode: { id: string; x: number; y: number }, _color: string, ctx: CanvasRenderingContext2D) => {
+            nodePointerAreaPaint={(paintNode: { id: string; x: number; y: number }, color: string, ctx: CanvasRenderingContext2D) => {
               const n = graphData.nodes.find((nd) => nd.id === paintNode.id);
               const size = n?.type === "contact" ? 12 : n?.type === "event" ? 12 * 1.6 : 12 * 1.1;
+              ctx.fillStyle = color;
               ctx.beginPath();
               ctx.arc(paintNode.x, paintNode.y, size || 12, 0, Math.PI * 2);
               ctx.fill();
