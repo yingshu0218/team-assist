@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     // 先获取所有分类信息
     const categoryIds = [...new Set(txList.map((t) => t.category_id).filter((id): id is number => id !== null))];
-    let categoryInfo: Record<number, { name: string; type: string; color: string | null; icon: string | null }> = {};
+    const categoryInfo: Record<number, { name: string; type: string; color: string | null; icon: string | null }> = {};
 
     if (categoryIds.length > 0) {
       const cats = await db

@@ -1,6 +1,6 @@
 # 团队管理助手
 
-支持多账本管理、收支记录、分类标签分组、客户关系管理（CRM）、数据统计与可视化的全栈 Web 应用，同时提供 CLI 命令行工具和 Agent 接入能力。概览按当前选中账本独立展示，支持亮色/暗色主题和 Git 数据备份。
+支持多账本管理、收支记录、分类标签分组、待办事项工作台、客户关系管理（CRM）、数据统计与可视化的全栈 Web 应用，同时提供 CLI 命令行工具和 Agent 接入能力。概览按当前选中账本独立展示，支持亮色/暗色主题和 Git 数据备份。
 
 ## 技术栈
 
@@ -117,14 +117,25 @@ docker compose exec app node dist/cli.js --token <AGENT_TOKEN> --api-base http:/
 - **分类占比图**：饼图展示各分类支出占比
 - **最近交易**：展示最近 5 条交易记录
 
-### 6. 亮色/暗色主题
+### 6. 待办事项工作台
+
+待办事项用于按团队/分组承载跨账本的协作任务，也可保留为未分组任务。
+
+- 支持创建、编辑、删除团队/分组，并在列表中查看关联账本数和待办数
+- 待办可设置标题、备注、状态（todo/doing/done/canceled）、优先级、到期日期
+- 待办可选择团队/分组，也可保留为「未分组」
+- 待办可选关联账本，便于把凭证整理、客户回款、项目开支等任务挂到具体账本
+- 详情面板支持 checklist 子任务，自动计算 checklist 进度
+- 统计卡片展示今日、进行中、已完成、逾期、完成率等进度数据
+
+### 7. 亮色/暗色主题
 
 - 支持亮色、暗色、跟随系统三种主题模式
 - 侧边栏顶部主题切换按钮，一键切换
 - 翡翠绿主色调贯穿两套主题
 - 主题切换无过渡闪烁
 
-### 7. 数据同步与备份
+### 8. 数据同步与备份
 
 #### 本地备份
 
@@ -144,7 +155,7 @@ docker compose exec app node dist/cli.js --token <AGENT_TOKEN> --api-base http:/
 - 开启后按设定间隔（5分钟 ~ 12小时）自动推送数据到 Git 仓库
 - 配置存储在浏览器 localStorage 中
 
-### 8. CLI 命令行工具
+### 9. CLI 命令行工具
 
 ```bash
 # 账本管理
@@ -168,6 +179,12 @@ npx tsx scripts/cli.ts tag add --name <名称> [--color <颜色>]
 
 # 统计
 npx tsx scripts/cli.ts stats
+
+# 团队/待办工作台（也可使用 pnpm cli <command>）
+pnpm cli team list
+pnpm cli todo list
+pnpm cli todo add --title "整理本月营销支出凭证"
+pnpm cli todo done <id>
 ```
 
 CLI 配置文件 `.cli-config.json` 保存当前激活的账本 ID，已被 .gitignore 忽略。
@@ -240,7 +257,7 @@ CLI 配置文件 `.cli-config.json` 保存当前激活的账本 ID，已被 .git
 │   └── cli.ts              # CLI 命令行工具入口
 ├── src/
 │   ├── app/
-│   │   ├── api/            # API 路由 (ledgers, transactions, categories, category-groups, tags, stats, sync)
+│   │   ├── api/            # API 路由 (ledgers, transactions, categories, category-groups, tags, stats, teams, todos, sync)
 │   │   ├── globals.css     # 全局样式
 │   │   ├── layout.tsx      # 根布局
 │   │   └── page.tsx        # 主页面 (含 tab 切换)
@@ -251,6 +268,7 @@ CLI 配置文件 `.cli-config.json` 保存当前激活的账本 ID，已被 .git
 │   │   ├── transactions-view.tsx # 收支明细页
 │   │   ├── categories-view.tsx  # 分类管理页 (分组折叠)
 │   │   ├── tags-view.tsx        # 标签管理页
+│   │   ├── todos/               # 待办事项工作台组件
 │   │   ├── transaction-dialog.tsx # 交易录入/编辑弹窗
 │   │   ├── stat-cards.tsx       # 统计卡片组件
 │   │   ├── overview-charts.tsx  # 图表可视化组件
@@ -283,9 +301,15 @@ CLI 配置文件 `.cli-config.json` 保存当前激活的账本 ID，已被 .git
 | `categories` | 分类 | id, ledger_id, group_id, name, type(income/expense), icon, color, sort_order |
 | `tags` | 标签 | id, ledger_id, name, color |
 | `transactions` | 交易记录 | id, ledger_id, category_id, amount, type, description, transaction_date, tag_ids |
+| `teams` | 团队/待办分组 | id, name, color, description, sort_order |
+| `todos` | 待办事项 | id, title, notes, status, priority, due_date, team_id, ledger_id, completed_at |
+| `todo_checklist_items` | 待办 checklist | id, todo_id, title, is_done, sort_order |
 
 - 创建账本时自动初始化默认分组和分类（按公司常用消费类别）
 - 删除分组时其下分类自动变为未分组（ON DELETE SET NULL）
+- 删除团队/分组时，账本和待办的 team_id 自动变为未分组（ON DELETE SET NULL）
+- 待办可选关联账本；删除账本时待办的 ledger_id 自动置空（ON DELETE SET NULL）
+- 删除待办时，其 checklist 子项级联删除（ON DELETE CASCADE）
 - RLS 已启用，公开访问策略用于开发环境
 
 ## API 路由
@@ -303,6 +327,12 @@ CLI 配置文件 `.cli-config.json` 保存当前激活的账本 ID，已被 .git
 | `/api/tags` | GET/POST | 标签列表/创建 |
 | `/api/tags/[id]` | PUT/DELETE | 标签编辑/删除 |
 | `/api/stats` | GET | 统计数据 (收入/支出/分类/趋势) |
+| `/api/teams` | GET/POST | 团队/待办分组列表(含账本数、待办数)/创建 |
+| `/api/teams/[id]` | GET/PUT/DELETE | 团队/待办分组详情/编辑/删除 |
+| `/api/todos` | GET/POST | 待办列表/创建(支持 team_id=none、ledger_id、status、due、search 筛选) |
+| `/api/todos/[id]` | GET/PUT/DELETE | 待办详情(含团队、账本、checklist、进度)/编辑/删除 |
+| `/api/todos/[id]/checklist` | POST | 添加待办 checklist 子项 |
+| `/api/todos/[id]/checklist/[itemId]` | PUT/DELETE | 更新/删除待办 checklist 子项 |
 | `/api/sync` | GET/POST | 数据导出(JSON)/导入(merge或replace模式) |
 | `/api/sync/git` | GET/POST | Git备份状态查询/配置/推送/拉取 |
 
