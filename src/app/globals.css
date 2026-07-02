@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -43,9 +44,12 @@
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
   --font-sans:
-    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', ui-sans-serif,
+    'Manrope', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', ui-sans-serif,
     system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     'Helvetica Neue', Arial, sans-serif;
+  --font-display:
+    'Manrope', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', ui-sans-serif,
+    system-ui, sans-serif;
   --font-mono:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
@@ -138,4 +142,179 @@
 
 body {
   @apply font-sans;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ==================== Animation Keyframes ==================== */
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes count-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==================== Animation Utilities ==================== */
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Staggered animation delays */
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+
+/* ==================== Glassmorphism ==================== */
+
+.glass-card {
+  background: oklch(1 0 0 / 0.72);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  border: 1px solid oklch(1 0 0 / 0.5);
+}
+
+.dark .glass-card {
+  background: oklch(0.22 0.02 260 / 0.72);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  border: 1px solid oklch(1 0 0 / 0.08);
+}
+
+/* ==================== Gradient Mesh Background ==================== */
+
+.mesh-bg-emerald {
+  background-image:
+    radial-gradient(at 0% 0%, oklch(0.527 0.17 155 / 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, oklch(0.6 0.118 184.704 / 0.08) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, oklch(0.828 0.189 84.429 / 0.06) 0px, transparent 50%);
+}
+
+.dark .mesh-bg-emerald {
+  background-image:
+    radial-gradient(at 0% 0%, oklch(0.588 0.197 145 / 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, oklch(0.696 0.17 162.48 / 0.1) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, oklch(0.627 0.265 303.9 / 0.08) 0px, transparent 50%);
+}
+
+/* ==================== Refined Shadows ==================== */
+
+.shadow-soft {
+  box-shadow:
+    0 1px 2px oklch(0.145 0.015 260 / 0.04),
+    0 4px 16px oklch(0.145 0.015 260 / 0.06);
+}
+
+.dark .shadow-soft {
+  box-shadow:
+    0 1px 2px oklch(0 0 0 / 0.2),
+    0 4px 16px oklch(0 0 0 / 0.3);
+}
+
+.shadow-float {
+  box-shadow:
+    0 2px 4px oklch(0.145 0.015 260 / 0.04),
+    0 8px 32px oklch(0.145 0.015 260 / 0.08);
+}
+
+.dark .shadow-float {
+  box-shadow:
+    0 2px 4px oklch(0 0 0 / 0.3),
+    0 8px 32px oklch(0 0 0 / 0.4);
+}
+
+/* ==================== Display Font Utility ==================== */
+
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* ==================== Tabular Numbers ==================== */
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* ==================== Shimmer Loading ==================== */
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.965 0.008 110 / 0.4) 25%,
+    oklch(0.965 0.008 110 / 0.7) 50%,
+    oklch(0.965 0.008 110 / 0.4) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .shimmer {
+  background: linear-gradient(
+    90deg,
+    oklch(0.28 0.02 260 / 0.4) 25%,
+    oklch(0.28 0.02 260 / 0.7) 50%,
+    oklch(0.28 0.02 260 / 0.4) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ==================== Hover Lift ==================== */
+
+.hover-lift {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
 }
