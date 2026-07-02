@@ -13,7 +13,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -50,7 +50,6 @@ const PIE_COLORS = [
   "#0891B2",
 ];
 
-// 从 CSS 变量获取当前主题色
 function getThemeColor(varName: string, fallback: string): string {
   if (typeof window === "undefined") return fallback;
   const value = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
@@ -68,7 +67,7 @@ function LedgerSelect({
 }) {
   return (
     <Select value={value === null ? undefined : String(value)} onValueChange={(id) => onValueChange(Number(id))}>
-      <SelectTrigger size="sm" className="max-w-36">
+      <SelectTrigger size="sm" className="max-w-36 h-8 text-xs">
         <SelectValue placeholder="选择账本" />
       </SelectTrigger>
       <SelectContent>
@@ -81,6 +80,32 @@ function LedgerSelect({
         </SelectGroup>
       </SelectContent>
     </Select>
+  );
+}
+
+// 自定义 Tooltip 组件
+function ChartTooltip({ active, payload, label }: {
+  active?: boolean;
+  payload?: Array<{ name?: string; value?: number; color?: string }>;
+  label?: string;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div className="rounded-xl border border-border/50 bg-card/95 px-3 py-2 shadow-float backdrop-blur-md">
+      {label && <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p>}
+      {payload.map((entry, i) => (
+        <div key={i} className="flex items-center gap-2">
+          <span
+            className="h-2 w-2 rounded-full"
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-xs text-muted-foreground">{entry.name}</span>
+          <span className="font-display text-xs font-bold tnum text-foreground">
+            ¥{formatCurrency(entry.value ?? 0)}
+          </span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -98,76 +123,62 @@ export function OverviewCharts({
   const dailyTrend = trendStats?.dailyTrend || [];
   const categoryBreakdown = expenseStats?.categoryBreakdown || [];
 
-  // 最多显示最近30天的趋势数据
   const recentTrend = dailyTrend.slice(-30).map((d) => ({
     ...d,
-    date: d.date.slice(5), // MM-DD
+    date: d.date.slice(5),
   }));
 
-  // 分类饼图数据
   const pieData = categoryBreakdown.slice(0, 8).map((c) => ({
     name: c.category_name,
     value: c.total,
     color: c.color || PIE_COLORS[0],
   }));
 
-  // 自适应主题色的配置
   const gridStroke = typeof window !== "undefined" ? getThemeColor("--border", "#e4e4e7") : "#e4e4e7";
   const tickFill = typeof window !== "undefined" ? getThemeColor("--muted-foreground", "#71717A") : "#71717A";
-  const tooltipBg = typeof window !== "undefined" ? getThemeColor("--card", "#ffffff") : "#ffffff";
-  const tooltipBorder = typeof window !== "undefined" ? getThemeColor("--border", "#e4e4e7") : "#e4e4e7";
-  const tooltipText = typeof window !== "undefined" ? getThemeColor("--foreground", "#18181B") : "#18181B";
 
   return (
     <div className="grid gap-3 lg:grid-cols-3">
       {/* 收支趋势图 */}
-      <Card className="lg:col-span-2">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-sm">收支趋势</CardTitle>
+      <Card className="border-border/50 shadow-soft lg:col-span-2">
+        <CardContent className="p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-display text-base font-bold text-foreground">收支趋势</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">最近 30 天</p>
+            </div>
             <LedgerSelect ledgers={ledgers} value={trendLedgerId} onValueChange={onTrendLedgerChange} />
           </div>
-        </CardHeader>
-        <CardContent className="pl-2">
           {trendLoading ? (
-            <div className="h-64 animate-pulse rounded bg-muted" />
+            <div className="h-64 shimmer rounded-xl" />
           ) : recentTrend.length === 0 ? (
             <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
               暂无数据
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={256}>
-              <BarChart data={recentTrend} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} vertical={false} />
+              <BarChart data={recentTrend} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} vertical={false} opacity={0.5} />
                 <XAxis
                   dataKey="date"
-                  tick={{ fontSize: 11, fill: tickFill }}
+                  tick={{ fontSize: 11, fill: tickFill, fontFamily: "Manrope" }}
                   tickLine={false}
                   axisLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: tickFill }}
+                  tick={{ fontSize: 11, fill: tickFill, fontFamily: "Manrope" }}
                   tickLine={false}
                   axisLine={false}
                   tickFormatter={(v: number) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v))}
                 />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 8,
-                    border: `1px solid ${tooltipBorder}`,
-                    fontSize: 12,
-                    backgroundColor: tooltipBg,
-                    color: tooltipText,
-                  }}
-                  formatter={(value: number) => [`¥${formatCurrency(value)}`, undefined]}
-                />
+                <Tooltip content={<ChartTooltip />} cursor={{ fill: "oklch(0.965 0.008 110 / 0.3)" }} />
                 <Legend
-                  wrapperStyle={{ fontSize: 12 }}
+                  wrapperStyle={{ fontSize: 12, fontFamily: "Manrope", paddingTop: 8 }}
                   iconType="circle"
                   iconSize={8}
                 />
-                <Bar dataKey="income" name="收入" fill="#16A34A" radius={[3, 3, 0, 0]} maxBarSize={32} />
-                <Bar dataKey="expense" name="支出" fill="#DC2626" radius={[3, 3, 0, 0]} maxBarSize={32} />
+                <Bar dataKey="income" name="收入" fill="#16A34A" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                <Bar dataKey="expense" name="支出" fill="#DC2626" radius={[4, 4, 0, 0]} maxBarSize={28} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -175,16 +186,17 @@ export function OverviewCharts({
       </Card>
 
       {/* 分类占比图 */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-sm">支出分类占比</CardTitle>
+      <Card className="border-border/50 shadow-soft">
+        <CardContent className="p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h3 className="font-display text-base font-bold text-foreground">支出分类</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">占比分布</p>
+            </div>
             <LedgerSelect ledgers={ledgers} value={expenseLedgerId} onValueChange={onExpenseLedgerChange} />
           </div>
-        </CardHeader>
-        <CardContent>
           {expenseLoading ? (
-            <div className="h-64 animate-pulse rounded bg-muted" />
+            <div className="h-64 shimmer rounded-xl" />
           ) : pieData.length === 0 ? (
             <div className="flex h-64 items-center justify-center text-sm text-muted-foreground">
               暂无数据
@@ -196,27 +208,19 @@ export function OverviewCharts({
                   data={pieData}
                   cx="50%"
                   cy="45%"
-                  innerRadius={45}
-                  outerRadius={75}
-                  paddingAngle={2}
+                  innerRadius={50}
+                  outerRadius={78}
+                  paddingAngle={3}
                   dataKey="value"
+                  stroke="none"
                 >
                   {pieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: 8,
-                    border: `1px solid ${tooltipBorder}`,
-                    fontSize: 12,
-                    backgroundColor: tooltipBg,
-                    color: tooltipText,
-                  }}
-                  formatter={(value: number) => [`¥${formatCurrency(value)}`, undefined]}
-                />
+                <Tooltip content={<ChartTooltip />} />
                 <Legend
-                  wrapperStyle={{ fontSize: 11 }}
+                  wrapperStyle={{ fontSize: 11, fontFamily: "Manrope" }}
                   iconType="circle"
                   iconSize={8}
                   formatter={(value: string) => {

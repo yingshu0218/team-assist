@@ -22,7 +22,7 @@ export function StatCards({ stats, loading, initialBalance = 0 }: StatCardsProps
       label: "总收入",
       value: totalIncome,
       icon: ArrowUpCircle,
-      color: "text-emerald-600",
+      color: "text-emerald-600 dark:text-emerald-400",
       bg: "bg-emerald-50 dark:bg-emerald-950/40",
       count: stats?.incomeCount ?? 0,
     },
@@ -30,7 +30,7 @@ export function StatCards({ stats, loading, initialBalance = 0 }: StatCardsProps
       label: "总支出",
       value: totalExpense,
       icon: ArrowDownCircle,
-      color: "text-red-600",
+      color: "text-red-600 dark:text-red-400",
       bg: "bg-red-50 dark:bg-red-950/40",
       count: stats?.expenseCount ?? 0,
     },
@@ -38,14 +38,14 @@ export function StatCards({ stats, loading, initialBalance = 0 }: StatCardsProps
       label: "净收支",
       value: netBalance,
       icon: Scale,
-      color: netBalance >= 0 ? "text-emerald-600" : "text-red-600",
+      color: netBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400",
       bg: "bg-blue-50 dark:bg-blue-950/40",
     },
     {
       label: "实际余额",
       value: actualBalance,
       icon: Wallet,
-      color: actualBalance >= 0 ? "text-emerald-600" : "text-red-600",
+      color: actualBalance >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400",
       bg: "bg-amber-50 dark:bg-amber-950/40",
       sub: initialBalance !== 0 ? `含初始 ¥${formatCurrency(initialBalance)}` : undefined,
     },
@@ -53,7 +53,7 @@ export function StatCards({ stats, loading, initialBalance = 0 }: StatCardsProps
       label: "交易笔数",
       value: stats?.transactionCount ?? 0,
       icon: Receipt,
-      color: "text-indigo-600",
+      color: "text-indigo-600 dark:text-indigo-400",
       bg: "bg-indigo-50 dark:bg-indigo-950/40",
       isCount: true,
     },
@@ -61,18 +61,19 @@ export function StatCards({ stats, loading, initialBalance = 0 }: StatCardsProps
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      {cards.map((card) => (
-        <Card key={card.label} className="overflow-hidden">
+      {cards.map((card, i) => (
+        <Card
+          key={card.label}
+          className={`hover-lift border-border/50 shadow-soft animate-fade-in-up stagger-${i + 1}`}
+        >
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <p className="text-xs font-medium text-muted-foreground">{card.label}</p>
                 {loading ? (
-                  <div className="mt-2 h-7 w-24 animate-pulse rounded bg-muted" />
+                  <div className="mt-2 h-7 w-24 shimmer rounded" />
                 ) : (
-                  <p
-                    className={`mt-1 text-xl font-semibold tabular-nums ${card.color}`}
-                  >
+                  <p className={`mt-1 font-display text-xl font-bold tnum ${card.color}`}>
                     {card.isCount ? card.value : `¥${formatCurrency(card.value)}`}
                   </p>
                 )}
@@ -83,7 +84,7 @@ export function StatCards({ stats, loading, initialBalance = 0 }: StatCardsProps
                   <p className="mt-0.5 text-xs text-muted-foreground">{card.sub}</p>
                 )}
               </div>
-              <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${card.bg}`}>
+              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${card.bg}`}>
                 <card.icon className={`h-5 w-5 ${card.color}`} />
               </div>
             </div>
